@@ -76,7 +76,7 @@ export default function HomePage() {
     // Check if query matches a car type
     const matchedType = TYPES.find(
       t => t.toLowerCase() === q.toLowerCase() ||
-           t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     );
     if (matchedType) {
       params.set("tipo", matchedType);
@@ -155,9 +155,9 @@ export default function HomePage() {
               </button>
             </div>
             <div className="hero-stats fade-up d7">
-              <div><strong><Counter to={480} suffix="+" /></strong><span>Autos vendidos</span></div>
+              <div><strong><Counter to={500} suffix="+" /></strong><span>Clientes Satisfechos</span></div>
               <div><strong><Counter to={150} suffix=" pts" /></strong><span>Puntos de inspección</span></div>
-              <div><strong><Counter to={12} /></strong><span>Años de experiencia</span></div>
+              <div><strong><Counter to={10} /></strong><span>Años de experiencia</span></div>
             </div>
           </div>
         </div>
