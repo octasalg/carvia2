@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   Star, Sparkles, ShieldCheck, BadgeCheck, Wallet, Award,
-  TrendingUp, ArrowRight, Check, MessageCircle, Quote, Car
+  TrendingUp, ArrowRight, Check, MessageCircle, Quote, Car, Search
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -17,19 +17,31 @@ import SearchPanel from "../components/SearchPanel";
 import { SkeletonGrid } from "../components/SkeletonCard";
 import { getAutos } from "../services/autos";
 import { getHeroImages } from "../services/heroImages";
-import { BRANDS, emptyFilters, img, waLink, mxn } from "../data/seed";
+import { BRANDS, TYPES, emptyFilters, img, waLink, mxn } from "../data/seed";
+
+import heroBg1 from "../assets/hero1.jpg";
+import heroBg2 from "../assets/hero2.jpg";
+import heroBg3 from "../assets/hero3.jpg";
+import heroBg4 from "../assets/hero4.jpg";
+
+const HERO_BG_IMAGES = [heroBg1, heroBg2, heroBg3, heroBg4];
 
 const DEFAULT_HERO = img("photo-1503376780353-7e6692767b70", 900);
+
+// All car types for smart search matching
+const ALL_TYPES = ["Sedán", "Sedan", "Hatchback", "SUV", "Pickup", "Coupé", "Coupe"];
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState(emptyFilters);
+  const [searchQuery, setSearchQuery] = useState("");
   const [availableBrands, setAvailableBrands] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [heroImages, setHeroImages] = useState([]);
   const [heroIdx, setHeroIdx] = useState(0);
+  const [heroBgIdx, setHeroBgIdx] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -38,7 +50,13 @@ export default function HomePage() {
     getAvailableBrands().then(({ data }) => { if (data?.length) setAvailableBrands(data); });
   }, []);
 
-  // Auto-rotate carousel when there are multiple hero images
+  // Auto-rotate background hero images
+  useEffect(() => {
+    const t = setInterval(() => setHeroBgIdx((i) => (i + 1) % HERO_BG_IMAGES.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Auto-rotate car carousel when there are multiple hero images
   useEffect(() => {
     if (heroImages.length <= 1) return;
     const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroImages.length), 5000);
@@ -56,9 +74,19 @@ export default function HomePage() {
     setLoading(false);
   }
 
-  function handleSearch() {
+  function handleSmartSearch() {
+    const q = searchQuery.trim();
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
+    // Check if query matches a car type
+    const matchedType = TYPES.find(
+      t => t.toLowerCase() === q.toLowerCase() ||
+           t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    );
+    if (matchedType) {
+      params.set("tipo", matchedType);
+    } else if (q) {
+      params.set("q", q);
+    }
     navigate(`/catalogo?${params.toString()}`);
   }
 
@@ -78,12 +106,20 @@ export default function HomePage() {
 
       <Navbar />
 
-      {/* HERO */}
-      <section className="hero">
-        <div className="hero-bg" />
-        <div className="hero-glow" />
-        <div className="hero-grid" />
-        <div className="hero-inner">
+      {/* HERO — fullscreen background slideshow */}
+      <section className="hero hero-fullbg">
+        {/* Background image layers */}
+        {HERO_BG_IMAGES.map((src, i) => (
+          <div
+            key={src}
+            className={`hero-photo-layer${i === heroBgIdx ? " active" : ""}`}
+            style={{ backgroundImage: `url(${src})` }}
+          />
+        ))}
+        {/* Gradient overlay for text legibility */}
+        <div className="hero-photo-overlay" />
+
+        <div className="hero-inner hero-inner-fullbg">
           <div className="hero-copy">
             <div className="hero-badge fade-up d1"><Sparkles size={14} /> Seminuevos certificados · Chihuahua</div>
             <h1 className="hero-title">
@@ -95,7 +131,26 @@ export default function HomePage() {
               Autos inspeccionados punto por punto, financiamiento a tu medida y la confianza
               de una agencia premium. Tu próximo auto, sin sorpresas.
             </p>
-            <div className="hero-cta fade-up d6">
+
+            {/* Buscador integrado en el hero */}
+            <div className="hero-search-bar fade-up d6">
+              <div className="hero-search-input-wrap">
+                <Search size={18} className="hero-search-icon" />
+                <input
+                  id="hero-search-input"
+                  className="hero-search-input"
+                  placeholder="Busca por marca, modelo, tipo (SUV, sedán…), año…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSmartSearch()}
+                />
+              </div>
+              <button className="btn btn-primary hero-search-btn" onClick={handleSmartSearch}>
+                Buscar
+              </button>
+            </div>
+
+            <div className="hero-cta fade-up d6" style={{ marginTop: 16 }}>
               <button className="btn btn-primary btn-lg" onClick={() => navigate("/catalogo")}>
                 Ver catálogo <ArrowRight size={18} />
               </button>
@@ -109,34 +164,20 @@ export default function HomePage() {
               <div><strong><Counter to={12} /></strong><span>Años de experiencia</span></div>
             </div>
           </div>
-          <div className="hero-art fade-in d4">
-            <div className="hero-card">
-              <img
-                key={heroIdx}
-                src={heroImages.length > 0 ? heroImages[heroIdx] : DEFAULT_HERO}
-                alt="Auto seminuevo destacado"
-                loading="eager"
-                className="hero-card-img"
-                onError={(e) => { e.currentTarget.src = DEFAULT_HERO; }}
-              />
-              <div className="hero-card-tag"><BadgeCheck size={16} /> Inspección certificada</div>
-              {heroImages.length > 1 && (
-                <div className="hero-card-dots">
-                  {heroImages.map((_, i) => (
-                    <button
-                      key={i}
-                      className={`hero-dot${i === heroIdx ? " active" : ""}`}
-                      onClick={() => setHeroIdx(i)}
-                      aria-label={`Foto ${i + 1}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="hero-float f1"><ShieldCheck size={18} /> Garantía incluida</div>
-            <div className="hero-float f2"><Wallet size={18} /> Desde $4,990/mes</div>
-          </div>
         </div>
+
+        {/* Slide dots */}
+        <div className="hero-bg-dots">
+          {HERO_BG_IMAGES.map((_, i) => (
+            <button
+              key={i}
+              className={`hero-bg-dot${i === heroBgIdx ? " active" : ""}`}
+              onClick={() => setHeroBgIdx(i)}
+              aria-label={`Foto de fondo ${i + 1}`}
+            />
+          ))}
+        </div>
+
         <div className="hero-marquee">
           <div className="marquee-track">
             {[...BRANDS, ...BRANDS].map((b, i) => <span key={i}>{b}</span>)}
@@ -144,8 +185,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* BUSCADOR */}
-      <SearchPanel filters={filters} setFilters={setFilters} onSearch={handleSearch} brands={availableBrands.length ? availableBrands : undefined} />
+      {/* TESTIMONIOS — primero */}
+      <Testimonials />
 
       {/* AUTOS DESTACADOS */}
       <section className="section" id="destacados">
@@ -185,9 +226,6 @@ export default function HomePage() {
 
       {/* FINANCIAMIENTO */}
       <Financing />
-
-      {/* TESTIMONIOS */}
-      <Testimonials />
 
       {/* CONTACTO */}
       <Contact />
@@ -299,6 +337,18 @@ function Testimonials() {
     { n: "Carlos R.", c: "Toyota Corolla", r: 5, q: "Me dieron mi auto anterior a cuenta y el financiamiento quedó a mi medida. Atención de primer nivel, sin presiones." },
     { n: "Andrea V.", c: "Nissan Versa", r: 5, q: "Buscaba algo confiable y económico. El asesor fue honesto en cada detalle. Volvería a comprar con Carvía sin dudarlo." },
   ];
+
+  const [activeIdx, setActiveIdx] = useState(0);
+  const sliderRef = useRef(null);
+
+  // Auto-rotate testimonials every 6 seconds on mobile
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIdx((i) => (i + 1) % t.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [t.length]);
+
   return (
     <section className="section">
       <div className="container">
@@ -308,7 +358,9 @@ function Testimonials() {
             <h2 className="section-title">Clientes que ya estrenan</h2>
           </div>
         </Reveal>
-        <div className="testi-grid">
+
+        {/* Desktop: grid */}
+        <div className="testi-grid testi-grid-desktop">
           {t.map((x, i) => (
             <Reveal key={x.n} delay={i * 90} className="testi-card">
               <div className="testi-stars">{Array.from({ length: x.r }).map((_, k) => <Star key={k} size={16} />)}</div>
@@ -319,6 +371,38 @@ function Testimonials() {
               </div>
             </Reveal>
           ))}
+        </div>
+
+        {/* Mobile: slider */}
+        <div className="testi-slider" ref={sliderRef}>
+          <div
+            className="testi-slider-track"
+            style={{ transform: `translateX(-${activeIdx * 100}%)` }}
+          >
+            {t.map((x) => (
+              <div key={x.n} className="testi-slide">
+                <div className="testi-card testi-card-slide">
+                  <div className="testi-stars">{Array.from({ length: x.r }).map((_, k) => <Star key={k} size={16} />)}</div>
+                  <p className="testi-q">"{x.q}"</p>
+                  <div className="testi-who">
+                    <div className="testi-avatar">{x.n[0]}</div>
+                    <div><strong>{x.n}</strong><span>{x.c}</span></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Dots */}
+          <div className="testi-slider-dots">
+            {t.map((_, i) => (
+              <button
+                key={i}
+                className={`testi-dot${i === activeIdx ? " active" : ""}`}
+                onClick={() => setActiveIdx(i)}
+                aria-label={`Testimonio ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -360,7 +444,7 @@ function Contact() {
             </a>
             <div className="contact-item"><span style={{ color: "var(--orange)" }}>📞</span><div><strong>Teléfono</strong><span>(614) 401 6149</span></div></div>
             <div className="contact-item"><span style={{ color: "var(--orange)" }}>✉️</span><div><strong>Correo</strong><span>hola@carvia.mx</span></div></div>
-            <div className="contact-item"><span style={{ color: "var(--orange)" }}>📍</span><div><strong>Ubicación</strong><span>Av. Prol. Teófilo Borunda 10800, Col. Labor de Terrazas, Chihuahua</span></div></div>
+            <a className="contact-item" href="https://share.google/jrsZIW9FwlqwqgXOW" target="_blank" rel="noreferrer"><span style={{ color: "var(--orange)" }}>📍</span><div><strong>Ubicación</strong><span>Av. Prol. Teófilo Borunda 10800, Col. Labor de Terrazas, Chihuahua</span></div></a>
             <div className="contact-item"><span style={{ color: "var(--orange)" }}>🕐</span><div><strong>Horario</strong><span>Lun–Vie · 9:00–19:00 · Sáb · 9:00–16:00</span></div></div>
           </div>
         </Reveal>

@@ -119,16 +119,35 @@ export default function SearchPanel({ filters, setFilters, onSearch, collapsible
     </div>
   );
 
-  /* ---- Modo no colapsable (home) ---- */
+  /* ---- Modo no colapsable (home) — versión simplificada ---- */
   if (!collapsible) {
     return (
       <section className="search-wrap" id="buscar">
         <Reveal className="search-panel">
           <div className="search-head">
             <div className="search-title"><Search size={18} /> Encuentra tu auto ideal</div>
-            <button className="search-clear" onClick={() => setFilters(emptyFilters)}>Limpiar filtros</button>
           </div>
-          {panelContent}
+          <div className="search-simple">
+            <div className="search-simple-input">
+              <Search size={16} className="search-simple-icon" />
+              <input
+                placeholder="Busca por marca, modelo, año…"
+                value={filters.q}
+                onChange={set("q")}
+                onKeyDown={(e) => e.key === "Enter" && onSearch()}
+              />
+            </div>
+            <div className="search-simple-tipo">
+              <label>Tipo</label>
+              <select value={filters.tipo} onChange={set("tipo")}>
+                <option value="">Todos</option>
+                {TYPES.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary search-simple-btn" onClick={onSearch}>
+              <Search size={18} /> Buscar autos
+            </button>
+          </div>
         </Reveal>
       </section>
     );
