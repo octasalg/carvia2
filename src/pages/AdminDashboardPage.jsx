@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
     const newVal = !car[key];
     setCars((prev) => prev.map((c) => c.id === id ? { ...c, [key]: newVal } : c));
     const { error } = await updateAuto(id, { [key]: newVal });
-    if (error) { toast.error("Error al actualizar"); loadCars(); }
+    if (error) { toast.error(`Error al actualizar: ${error.message || "Verifica tu base de datos"}`); loadCars(); }
   }
 
   async function remove(id) {
@@ -89,7 +89,7 @@ export default function AdminDashboardPage() {
       result = await createAuto(data);
     }
     if (result.error) {
-      toast.error("Error al guardar");
+      toast.error(`Error al guardar: ${result.error.message || "Verifica tu base de datos"}`);
     } else {
       toast.success(isEdit ? "Auto actualizado" : "Auto creado");
       await loadCars();
