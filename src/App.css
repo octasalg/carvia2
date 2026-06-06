@@ -715,6 +715,8 @@ img { display: block; max-width: 100%; }
   .cards-grid, .why-grid, .steps, .testi-grid-desktop { grid-template-columns: repeat(2, 1fr); }
   .step-arrow { display: none; }
   .finance-inner, .contact-inner, .detail-grid, .detail-body, .detail-form-card, .footer-inner { grid-template-columns: 1fr; }
+  .gallery-main { aspect-ratio: unset !important; border-radius: 16px; }
+  .gallery-main img { height: auto !important; object-fit: unset !important; display: block; }
   .admin { grid-template-columns: 1fr; }
   .admin-side { flex-direction: row; align-items: center; border-right: none; border-bottom: 1px solid var(--border); padding: 14px 18px; }
   .admin-side .logo { margin: 0; }
@@ -758,8 +760,8 @@ img { display: block; max-width: 100%; }
   .uploader-grid { grid-template-columns: repeat(2, 1fr); }
   .search-mobile-btns { flex-direction: column; }
   /* Galería detalle móvil */
-  .gallery-main { aspect-ratio: 4/3; border-radius: 14px; }
-  .gallery-main img { object-fit: contain; object-position: center center; }
+  .gallery-main { aspect-ratio: unset !important; border-radius: 14px; min-height: 200px; }
+  .gallery-main img { height: auto !important; object-fit: unset !important; display: block; }
   .gallery-thumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
   .thumb { flex-shrink: 0; }
   /* Hero fullbg mobile */
@@ -774,6 +776,5 @@ img { display: block; max-width: 100%; }
   .hero-search-input { font-size: 14px; }
 }
 @media (orientation: landscape) and (max-height: 500px) {
-  .gallery-main { aspect-ratio: unset; max-height: 60vh; }
   .card-media { aspect-ratio: unset; max-height: 45vh; }
 }
