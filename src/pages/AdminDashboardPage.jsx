@@ -69,8 +69,7 @@ export default function AdminDashboardPage() {
     if (!car) return;
     const newVal = !car[key];
     setCars((prev) => prev.map((c) => c.id === id ? { ...c, [key]: newVal } : c));
-    const fn = key === "visible" ? toggleVisible : toggleDestacado;
-    const { error } = await fn(id, newVal);
+    const { error } = await updateAuto(id, { [key]: newVal });
     if (error) { toast.error("Error al actualizar"); loadCars(); }
   }
 
@@ -199,6 +198,8 @@ export default function AdminDashboardPage() {
                       <div className="ar-tags">
                         <span className={`tag ${c.visible ? "tag-on" : "tag-off"}`}>{c.visible ? "Visible" : "Oculto"}</span>
                         {c.destacado && <span className="tag tag-star"><Star size={11} /> Destacado</span>}
+                        {c.oferta && <span className="tag tag-oferta-admin">🔥 Oferta</span>}
+                        {c.proximamente && <span className="tag tag-proximamente-admin">⏳ Próximamente</span>}
                       </div>
                       <div className="ar-actions">
                         <button title="Destacar" className={`iconbtn ${c.destacado ? "on" : ""}`} onClick={() => toggle(c.id, "destacado")}><Star size={16} /></button>
@@ -317,7 +318,7 @@ function CarForm({ initial, onSave, onClose }) {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", descripcion: "", equipamiento: [],
-    imagenes: [], destacado: false, visible: true,
+    imagenes: [], destacado: false, visible: true, oferta: false, proximamente: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
   const [equipInput, setEquipInput] = useState((initial.equipamiento || []).join(", "));
@@ -488,10 +489,18 @@ function CarForm({ initial, onSave, onClose }) {
             )}
           </div>
 
-          <div className="form-toggles">
+          <div className="form-toggles" style={{ flexWrap: "wrap", gap: "14px 24px" }}>
             <label className="switch">
               <input type="checkbox" checked={f.destacado} onChange={(e) => setF({ ...f, destacado: e.target.checked })} />
               <span className="switch-track" /><span className="switch-label"><Star size={14} /> Destacado</span>
+            </label>
+            <label className="switch">
+              <input type="checkbox" checked={f.oferta} onChange={(e) => setF({ ...f, oferta: e.target.checked })} />
+              <span className="switch-track" /><span className="switch-label">🔥 Oferta</span>
+            </label>
+            <label className="switch">
+              <input type="checkbox" checked={f.proximamente} onChange={(e) => setF({ ...f, proximamente: e.target.checked })} />
+              <span className="switch-track" /><span className="switch-label">⏳ Próximamente</span>
             </label>
             <label className="switch">
               <input type="checkbox" checked={f.visible} onChange={(e) => setF({ ...f, visible: e.target.checked })} />

@@ -51,17 +51,13 @@ export default function HomePage() {
   }, []);
 
   // Auto-rotate background hero images
-  useEffect(() => {
-    const t = setInterval(() => setHeroBgIdx((i) => (i + 1) % HERO_BG_IMAGES.length), 6000);
-    return () => clearInterval(t);
-  }, []);
+  const displayedHeroImages = heroImages.length > 0 ? heroImages : HERO_BG_IMAGES;
 
-  // Auto-rotate car carousel when there are multiple hero images
   useEffect(() => {
-    if (heroImages.length <= 1) return;
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % heroImages.length), 5000);
+    if (displayedHeroImages.length <= 1) return;
+    const t = setInterval(() => setHeroBgIdx((i) => (i + 1) % displayedHeroImages.length), 6000);
     return () => clearInterval(t);
-  }, [heroImages.length]);
+  }, [displayedHeroImages.length]);
 
   async function loadFeatured() {
     setLoading(true);
@@ -109,7 +105,7 @@ export default function HomePage() {
       {/* HERO — fullscreen background slideshow */}
       <section className="hero hero-fullbg">
         {/* Background image layers */}
-        {HERO_BG_IMAGES.map((src, i) => (
+        {displayedHeroImages.map((src, i) => (
           <div
             key={src}
             className={`hero-photo-layer${i === heroBgIdx ? " active" : ""}`}
@@ -168,7 +164,7 @@ export default function HomePage() {
 
         {/* Slide dots */}
         <div className="hero-bg-dots">
-          {HERO_BG_IMAGES.map((_, i) => (
+          {displayedHeroImages.map((_, i) => (
             <button
               key={i}
               className={`hero-bg-dot${i === heroBgIdx ? " active" : ""}`}
