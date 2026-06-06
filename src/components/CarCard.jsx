@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Gauge, Settings2, Fuel, Star, Car, MessageCircle } from "lucide-react";
+import { Gauge, Settings2, FileText, Star, Car, MessageCircle, Calendar } from "lucide-react";
 import Reveal from "./Reveal";
 import { mxn, km, waLink } from "../data/seed";
 
@@ -32,9 +32,10 @@ export default function CarCard({ car, delay = 0 }) {
           <p className="card-price">{mxn(car.precio)}</p>
         </div>
         <div className="card-specs">
+          {car.factura && <span><FileText size={14} /> {car.factura}</span>}
+          <span><Calendar size={14} /> {car.anio}</span>
           <span><Gauge size={14} /> {km(car.kilometraje)}</span>
           <span><Settings2 size={14} /> {car.transmision}</span>
-          <span><Fuel size={14} /> {car.tipo}</span>
         </div>
         <div className="card-actions">
           <button className="btn btn-dark" onClick={() => navigate(`/auto/${car.id}`)}>

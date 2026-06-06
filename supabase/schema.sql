@@ -29,6 +29,7 @@ create table if not exists public.autos (
   imagenes        text[],
   destacado       boolean default false,
   visible         boolean default true,
+  factura         text,
   oferta          boolean default false,
   proximamente    boolean default false,
   created_at      timestamptz default now(),

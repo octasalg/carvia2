@@ -317,7 +317,7 @@ function CarForm({ initial, onSave, onClose }) {
   const blank = {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", tipo: "Sedán",
-    colorExterior: "", colorInterior: "", descripcion: "", equipamiento: [],
+    colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
     imagenes: [], destacado: false, visible: true, oferta: false, proximamente: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
@@ -442,6 +442,16 @@ function CarForm({ initial, onSave, onClose }) {
             <div className="field"><label>Motor</label><input value={f.motor} onChange={set("motor")} placeholder="2.5L 4 cil." /></div>
             <div className="field"><label>Color exterior</label><input value={f.colorExterior} onChange={set("colorExterior")} placeholder="Rojo metálico" /></div>
             <div className="field"><label>Color interior</label><input value={f.colorInterior} onChange={set("colorInterior")} placeholder="Negro piel" /></div>
+            <div className="field">
+              <label>Tipo de factura</label>
+              <select value={f.factura} onChange={set("factura")}>
+                <option value="">Sin especificar</option>
+                <option>Agencia</option>
+                <option>Persona física</option>
+                <option>Persona moral</option>
+                <option>Sin factura</option>
+              </select>
+            </div>
           </div>
 
           <div className="field"><label>Descripción</label>

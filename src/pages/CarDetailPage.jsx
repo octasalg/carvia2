@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   ChevronLeft, ChevronRight, Star, Car, Calendar, Gauge,
-  Settings2, Fuel, Palette, MessageCircle, Check, ArrowRight, Maximize2
+  Settings2, Fuel, Palette, MessageCircle, Check, ArrowRight, Maximize2, FileText
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -150,12 +150,12 @@ export default function CarDetailPage() {
               <h1 className="detail-title">{car.modelo} <span>{car.version}</span></h1>
               <p className="detail-price">{mxn(car.precio)}</p>
               <div className="detail-specs">
+                {car.factura && <div><FileText size={18} /><span>Factura</span><strong>{car.factura}</strong></div>}
                 <div><Calendar size={18} /><span>Año</span><strong>{car.anio}</strong></div>
                 <div><Gauge size={18} /><span>Kilometraje</span><strong>{km(car.kilometraje)}</strong></div>
                 <div><Settings2 size={18} /><span>Transmisión</span><strong>{car.transmision}</strong></div>
                 <div><Fuel size={18} /><span>Motor</span><strong>{car.motor}</strong></div>
                 <div><Palette size={18} /><span>Color ext.</span><strong>{car.colorExterior}</strong></div>
-                <div><Palette size={18} /><span>Color int.</span><strong>{car.colorInterior}</strong></div>
               </div>
               <div className="detail-cta">
                 <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer">
@@ -168,21 +168,19 @@ export default function CarDetailPage() {
             </div>
           </div>
 
-          {/* Descripción y equipamiento */}
-          <div className="detail-body">
-            <div className="detail-section">
-              <h2>Descripción</h2>
-              <p>{car.descripcion}</p>
-            </div>
-            <div className="detail-section">
-              <h2>Equipamiento</h2>
-              <div className="equip-grid">
-                {car.equipamiento?.map((e) => (
-                  <span key={e} className="equip"><Check size={14} /> {e}</span>
-                ))}
+          {/* Equipamiento */}
+          {car.equipamiento?.length > 0 && (
+            <div className="detail-body">
+              <div className="detail-section">
+                <h2>Equipamiento</h2>
+                <div className="equip-grid">
+                  {car.equipamiento.map((e) => (
+                    <span key={e} className="equip"><Check size={14} /> {e}</span>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Formulario de contacto */}
           <div className="detail-contact" id="detail-contacto">
