@@ -29,6 +29,8 @@ create table if not exists public.autos (
   imagenes        text[],
   destacado       boolean default false,
   visible         boolean default true,
+  oferta          boolean default false,
+  proximamente    boolean default false,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
