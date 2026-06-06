@@ -745,6 +745,11 @@ img { display: block; max-width: 100%; }
   .lightbox-next { right: 8px; }
   .uploader-grid { grid-template-columns: repeat(2, 1fr); }
   .search-mobile-btns { flex-direction: column; }
+  /* Galería detalle móvil */
+  .gallery-main { aspect-ratio: 4/3; border-radius: 14px; }
+  .gallery-main img { object-fit: cover; object-position: center center; }
+  .gallery-thumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+  .thumb { flex-shrink: 0; }
   /* Hero fullbg mobile */
   .hero-inner-fullbg { padding: 120px 20px 32px; }
   .hero-fullbg .hero-copy { max-width: 100%; }
