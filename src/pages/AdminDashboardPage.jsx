@@ -447,9 +447,8 @@ function CarForm({ initial, onSave, onClose }) {
               <select value={f.factura} onChange={set("factura")}>
                 <option value="">Sin especificar</option>
                 <option>Agencia</option>
-                <option>Persona física</option>
-                <option>Persona moral</option>
-                <option>Sin factura</option>
+                <option>Seminuevos</option>
+                <option>Empresa</option>
               </select>
             </div>
           </div>
