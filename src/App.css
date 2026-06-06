@@ -380,6 +380,15 @@ img { display: block; max-width: 100%; }
   box-shadow: 0 0 8px var(--orange);
 }
 
+/* Featured cars mobile slider */
+.featured-grid-desktop { display: grid; }
+.featured-slider { display: none; overflow: hidden; position: relative; width: 100%; }
+.featured-slider-track { display: flex; transition: transform .55s cubic-bezier(.4,0,.2,1); will-change: transform; }
+.featured-slide { min-width: 100%; padding: 0 4px; box-sizing: border-box; }
+.featured-slider-dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+/* Force cards inside slider to always be visible (IntersectionObserver won't fire off-screen) */
+.featured-slide .reveal { opacity: 1; transform: none; }
+
 .contact-inner { display: grid; grid-template-columns: .95fr 1.05fr; gap: 48px; }
 .contact-items { display: grid; gap: 14px; margin-top: 26px; }
 .contact-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface);
@@ -727,6 +736,9 @@ img { display: block; max-width: 100%; }
   .cards-grid, .why-grid, .steps { grid-template-columns: 1fr; }
   .testi-grid-desktop { display: none; }
   .testi-slider { display: block; }
+  .featured-grid-desktop { display: none; }
+  .featured-slider { display: block; }
+  .card-media { aspect-ratio: 16/9; }
   .search-grid { grid-template-columns: 1fr; }
   .field-wide, .search-go { grid-column: span 1; }
   .form-grid { grid-template-columns: 1fr 1fr; }
@@ -760,4 +772,8 @@ img { display: block; max-width: 100%; }
   .hero-bg-dots { bottom: 76px; right: 20px; }
   .hero-search-bar { max-width: 100%; padding: 6px 6px 6px 16px; }
   .hero-search-input { font-size: 14px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .gallery-main { aspect-ratio: unset; max-height: 60vh; }
+  .card-media { aspect-ratio: unset; max-height: 45vh; }
 }

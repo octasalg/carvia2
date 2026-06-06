@@ -42,6 +42,8 @@ export default function HomePage() {
   const [heroImages, setHeroImages] = useState([]);
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroBgIdx, setHeroBgIdx] = useState(0);
+  const [featuredIdx, setFeaturedIdx] = useState(0);
+  const touchStartX = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -58,6 +60,25 @@ export default function HomePage() {
     const t = setInterval(() => setHeroBgIdx((i) => (i + 1) % displayedHeroImages.length), 6000);
     return () => clearInterval(t);
   }, [displayedHeroImages.length]);
+
+  useEffect(() => {
+    if (featured.length <= 1) return;
+    const t = setInterval(() => setFeaturedIdx((i) => (i + 1) % featured.length), 5000);
+    return () => clearInterval(t);
+  }, [featured.length]);
+
+  function handleFeaturedTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleFeaturedTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) {
+      if (dx < 0) setFeaturedIdx((i) => Math.min(i + 1, featured.length - 1));
+      else setFeaturedIdx((i) => Math.max(i - 1, 0));
+    }
+    touchStartX.current = null;
+  }
 
   async function loadFeatured() {
     setLoading(true);
@@ -207,9 +228,39 @@ export default function HomePage() {
               <button className="btn btn-ghost" onClick={loadFeatured}>Reintentar</button>
             </div>
           ) : (
-            <div className="cards-grid">
-              {featured.map((c, i) => <CarCard key={c.id} car={c} delay={i * 90} />)}
-            </div>
+            <>
+              {/* Desktop: grid */}
+              <div className="cards-grid featured-grid-desktop">
+                {featured.map((c, i) => <CarCard key={c.id} car={c} delay={i * 90} />)}
+              </div>
+              {/* Mobile: slider */}
+              <div
+                className="featured-slider"
+                onTouchStart={handleFeaturedTouchStart}
+                onTouchEnd={handleFeaturedTouchEnd}
+              >
+                <div
+                  className="featured-slider-track"
+                  style={{ transform: `translateX(-${featuredIdx * 100}%)` }}
+                >
+                  {featured.map((c) => (
+                    <div key={c.id} className="featured-slide">
+                      <CarCard car={c} />
+                    </div>
+                  ))}
+                </div>
+                <div className="featured-slider-dots">
+                  {featured.map((_, i) => (
+                    <button
+                      key={i}
+                      className={`testi-dot${i === featuredIdx ? " active" : ""}`}
+                      onClick={() => setFeaturedIdx(i)}
+                      aria-label={`Auto ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
           )}
         </div>
       </section>
