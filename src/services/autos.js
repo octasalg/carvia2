@@ -265,7 +265,7 @@ function applySupabaseFilters(query, filters) {
   if (filters.kmMax) query = query.lte("kilometraje", Number(filters.kmMax));
   if (filters.q) {
     query = query.or(
-      `marca.ilike.%${filters.q}%,modelo.ilike.%${filters.q}%,version.ilike.%${filters.q}%,descripcion.ilike.%${filters.q}%,color_exterior.ilike.%${filters.q}%`
+      `marca.ilike.%${filters.q}%,modelo.ilike.%${filters.q}%,version.ilike.%${filters.q}%,descripcion.ilike.%${filters.q}%,color_exterior.ilike.%${filters.q}%,tipo.ilike.%${filters.q}%`
     );
   }
   return query;
