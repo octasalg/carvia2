@@ -715,6 +715,9 @@ img { display: block; max-width: 100%; }
   .cards-grid, .why-grid, .steps, .testi-grid-desktop { grid-template-columns: repeat(2, 1fr); }
   .step-arrow { display: none; }
   .finance-inner, .contact-inner, .detail-grid, .detail-body, .detail-form-card, .footer-inner { grid-template-columns: 1fr; }
+  /* minmax(0,1fr) evita que el track se infle al min-content (ancho intrínseco de la imagen) y desborde el viewport */
+  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .detail-gallery, .detail-info { min-width: 0; }
   .gallery-main { aspect-ratio: 4 / 3; border-radius: 16px; max-width: 100%; }
   .gallery-main img { width: 100%; height: 100%; object-fit: contain; object-position: center center; display: block; }
   .admin { grid-template-columns: 1fr; }
@@ -760,8 +763,8 @@ img { display: block; max-width: 100%; }
   .uploader-grid { grid-template-columns: repeat(2, 1fr); }
   .search-mobile-btns { flex-direction: column; }
   /* Galería detalle móvil */
-  .gallery-main { aspect-ratio: 4 / 3; border-radius: 14px; max-width: 100%; outline: 3px solid red; }
-  .gallery-main img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain !important; object-position: center center; display: block; }
+  .gallery-main { aspect-ratio: 4 / 3; border-radius: 14px; max-width: 100%; }
+  .gallery-main img { width: 100%; height: 100%; object-fit: contain; object-position: center center; display: block; }
   .gallery-thumbs { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
   .thumb { flex-shrink: 0; }
   /* Hero fullbg mobile */
