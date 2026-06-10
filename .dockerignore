@@ -1,0 +1,29 @@
+# Dependencias e artefactos (se reconstruyen en el build)
+node_modules
+dist
+dist-ssr
+
+# Git / CI / plataformas
+.git
+.gitignore
+.github
+.vercel
+
+# Secretos: NUNCA copiar .env al contexto de build
+# (Vite leería estos valores en vez de los build args de Easypanel)
+.env
+.env.*
+
+# Editor / SO
+.vscode
+.idea
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Documentación y archivos que no afectan al build
+*.md
+Propuesta-*
+tatus
