@@ -319,7 +319,7 @@ function CarForm({ initial, onSave, onClose }) {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
-    imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false,
+    imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
   const [equipInput, setEquipInput] = useState((initial.equipamiento || []).join(", "));
@@ -530,6 +530,10 @@ function CarForm({ initial, onSave, onClose }) {
             <label className="switch">
               <input type="checkbox" checked={f.proximamente} onChange={(e) => setF({ ...f, proximamente: e.target.checked })} />
               <span className="switch-track" /><span className="switch-label">⏳ Próximamente</span>
+            </label>
+            <label className="switch">
+              <input type="checkbox" checked={f.vendido} onChange={(e) => setF({ ...f, vendido: e.target.checked })} />
+              <span className="switch-track" /><span className="switch-label">✅ Vendido</span>
             </label>
             <label className="switch">
               <input type="checkbox" checked={f.visible} onChange={(e) => setF({ ...f, visible: e.target.checked })} />

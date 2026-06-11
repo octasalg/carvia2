@@ -33,6 +33,7 @@ create table if not exists public.autos (
   factura         text,
   oferta          boolean default false,
   proximamente    boolean default false,
+  vendido         boolean default false,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
@@ -61,6 +62,10 @@ create table if not exists public.contactos (
 -- ============================================================
 alter table public.autos
   add column if not exists cover_position text default '50% 50%';
+
+-- Estado "Vendido" (etiqueta en el catálogo). Idempotente, no borra datos.
+alter table public.autos
+  add column if not exists vendido boolean default false;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)

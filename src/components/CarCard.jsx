@@ -17,12 +17,13 @@ export default function CarCard({ car, delay = 0 }) {
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         <div className="card-media-fallback"><Car size={40} /></div>
+        {car.vendido && <span className="card-ribbon">Vendido</span>}
         <div className="card-badges">
           {car.destacado && <span className="card-badge tag-destacado"><Star size={12} /> Destacado</span>}
           {car.oferta && <span className="card-badge tag-oferta">🔥 Oferta</span>}
           {car.proximamente && <span className="card-badge tag-proximamente">⏳ Próximamente</span>}
         </div>
-        <span className="card-year">{car.anio}</span>
+        {!car.vendido && <span className="card-year">{car.anio}</span>}
       </div>
       <div className="card-body">
         <div className="card-top">
