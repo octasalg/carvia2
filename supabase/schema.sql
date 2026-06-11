@@ -27,6 +27,7 @@ create table if not exists public.autos (
   descripcion     text,
   equipamiento    text[],
   imagenes        text[],
+  cover_position  text default '50% 50%',
   destacado       boolean default false,
   visible         boolean default true,
   factura         text,
@@ -52,6 +53,14 @@ create table if not exists public.contactos (
   mensaje      text,
   created_at   timestamptz default now()
 );
+
+-- ============================================================
+-- MIGRACIÓN: punto focal de la foto de portada (catálogo)
+-- Si la tabla `autos` ya existía, ejecuta esto para añadir la
+-- columna sin perder datos. Es idempotente (no falla si ya existe).
+-- ============================================================
+alter table public.autos
+  add column if not exists cover_position text default '50% 50%';
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)

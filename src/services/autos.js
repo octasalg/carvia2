@@ -14,6 +14,7 @@ function fromDB(row) {
     ...row,
     colorExterior: row.color_exterior,
     colorInterior: row.color_interior,
+    coverPosition: row.cover_position,
     fechaCreacion: row.created_at,
     fechaActualizacion: row.updated_at,
   };
@@ -21,9 +22,9 @@ function fromDB(row) {
 
 function toDB(car) {
   const {
-    colorExterior, colorInterior,
+    colorExterior, colorInterior, coverPosition,
     fechaCreacion, fechaActualizacion,
-    color_exterior, color_interior,
+    color_exterior, color_interior, cover_position,
     created_at, updated_at,
     ...rest
   } = car;
@@ -31,6 +32,7 @@ function toDB(car) {
     ...rest,
     color_exterior: colorExterior ?? color_exterior,
     color_interior: colorInterior ?? color_interior,
+    cover_position: coverPosition ?? cover_position,
   };
 }
 

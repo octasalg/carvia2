@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
+import FocalPointPicker from "../components/FocalPointPicker";
 import { useAuth } from "../hooks/useAuth";
 import {
   getAutosAdmin, createAuto, updateAuto, deleteAuto,
@@ -185,7 +186,7 @@ export default function AdminDashboardPage() {
                     <div className="atable-row" key={c.id}>
                       <div className="ar-car">
                         <div className="ar-thumb">
-                          <img src={c.imagenes?.[0]} alt="" loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                          <img src={c.imagenes?.[0]} alt="" loading="lazy" style={{ objectPosition: c.coverPosition || "50% 50%" }} onError={(e) => { e.currentTarget.style.display = "none"; }} />
                           <Car size={18} className="ar-thumb-fb" />
                         </div>
                         <div>
@@ -318,7 +319,7 @@ function CarForm({ initial, onSave, onClose }) {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
-    imagenes: [], destacado: false, visible: true, oferta: false, proximamente: false,
+    imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
   const [equipInput, setEquipInput] = useState((initial.equipamiento || []).join(", "));
@@ -497,6 +498,25 @@ function CarForm({ initial, onSave, onClose }) {
               />
             )}
           </div>
+
+          {/* Punto focal: qué parte de la foto de portada se ve en el catálogo */}
+          {(() => {
+            const coverUrl = useUploader
+              ? imageUrls[0]
+              : urlInput.split("\n").map((s) => s.trim()).filter(Boolean)[0];
+            if (!coverUrl) return null;
+            return (
+              <div className="field">
+                <label><Images size={13} /> Encuadre en el catálogo</label>
+                <p className="focal-help">Elige qué parte de la foto de portada se verá en el recuadro de la lista. Haz clic o arrastra sobre la foto, o usa los deslizadores.</p>
+                <FocalPointPicker
+                  image={coverUrl}
+                  value={f.coverPosition}
+                  onChange={(coverPosition) => setF((prev) => ({ ...prev, coverPosition }))}
+                />
+              </div>
+            );
+          })()}
 
           <div className="form-toggles" style={{ flexWrap: "wrap", gap: "14px 24px" }}>
             <label className="switch">

@@ -13,6 +13,7 @@ export default function CarCard({ car, delay = 0 }) {
           src={car.imagenes?.[0]}
           alt={`${car.marca} ${car.modelo}`}
           loading="lazy"
+          style={{ objectPosition: car.coverPosition || "50% 50%" }}
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         <div className="card-media-fallback"><Car size={40} /></div>
