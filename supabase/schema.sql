@@ -34,6 +34,7 @@ create table if not exists public.autos (
   oferta          boolean default false,
   proximamente    boolean default false,
   vendido         boolean default false,
+  precio_especial boolean default false,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
@@ -66,6 +67,10 @@ alter table public.autos
 -- Estado "Vendido" (etiqueta en el catálogo). Idempotente, no borra datos.
 alter table public.autos
   add column if not exists vendido boolean default false;
+
+-- Etiqueta "Precio especial" (cinta en el catálogo). Idempotente, no borra datos.
+alter table public.autos
+  add column if not exists precio_especial boolean default false;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)
