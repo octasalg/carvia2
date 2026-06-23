@@ -5,7 +5,8 @@
    - Inyecta etiquetas Open Graph en TIEMPO DE PETICIÓN para que
      WhatsApp / Facebook / Telegram muestren un preview correcto:
        · /auto/:id  → foto y datos del auto (consulta Supabase).
-       · cualquier otra ruta → logo de Carvía.
+       · cualquier otra ruta → primera foto del Hero (consulta
+         Supabase); si no hay, el banner con el logo de Carvía.
      (Los crawlers NO ejecutan JavaScript, por eso react-helmet
       no basta y la inyección debe hacerse en el servidor.)
    ============================================================ */
@@ -72,6 +73,30 @@ async function fetchCar(id) {
   }
 }
 
+/* ---- Primera foto del Hero (tabla settings, key = hero_images) ---- */
+let heroCache = null; // { img, exp }
+const HERO_TTL = 60_000;
+
+async function fetchHeroImage() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return "";
+  if (heroCache && heroCache.exp > Date.now()) return heroCache.img;
+  let img = "";
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/settings?key=eq.hero_images&select=value&limit=1`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (res.ok) {
+      const value = (await res.json())?.[0]?.value;
+      if (Array.isArray(value) && value.length) img = value[0] || "";
+    }
+  } catch {
+    img = "";
+  }
+  heroCache = { img, exp: Date.now() + HERO_TTL };
+  return img;
+}
+
 function absUrl(origin, src) {
   if (!src) return "";
   return /^https?:\/\//i.test(src) ? src : origin + (src.startsWith("/") ? "" : "/") + src;
@@ -80,7 +105,7 @@ function absUrl(origin, src) {
 /* ---- Construye el bloque de etiquetas OG para una respuesta ---- */
 const DEFAULT_OG_IMAGE = "/og-carvia.png"; // 1200x630, logo de Carvía
 
-function ogTags(origin, pathname, car) {
+function ogTags(origin, pathname, car, heroImage) {
   let title, description, image, type, url = origin + pathname;
   let knownSize = false; // sólo el banner por defecto tiene medidas conocidas
   if (car) {
@@ -96,8 +121,8 @@ function ogTags(origin, pathname, car) {
   } else {
     title = "Carvía — Autos seminuevos de calidad";
     description = "Autos seminuevos seleccionados y con garantía. Encuentra tu próximo auto.";
-    image = origin + DEFAULT_OG_IMAGE;
-    knownSize = true;
+    image = absUrl(origin, heroImage); // primera foto del hero, si existe
+    if (!image) { image = origin + DEFAULT_OG_IMAGE; knownSize = true; }
     type = "website";
   }
   const tags = [
@@ -154,7 +179,9 @@ async function serveIndex(req, res, origin, pathname) {
   let car = null;
   const m = pathname.match(/^\/auto\/([^/]+)\/?$/);
   if (m) car = await fetchCar(decodeURIComponent(m[1]));
-  const html = injectOg(INDEX_HTML, ogTags(origin, pathname, car));
+  // Para rutas que no son de un auto, usa la primera foto del hero como preview
+  const heroImage = car ? "" : await fetchHeroImage();
+  const html = injectOg(INDEX_HTML, ogTags(origin, pathname, car, heroImage));
   send(req, res, 200, {
     "Content-Type": MIME[".html"],
     "Cache-Control": "no-cache, no-store, must-revalidate",
