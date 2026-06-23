@@ -41,14 +41,27 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
 COPY . .
 RUN npm run build
 
-# ---------- Etapa 2: Runtime (Nginx) ----------
-FROM nginx:alpine AS runtime
+# ---------- Etapa 2: Runtime (Node) ----------
+# Se usa un pequeño servidor Node (server.js, sin dependencias) en lugar
+# de Nginx porque necesita inyectar etiquetas Open Graph por petición
+# (preview de WhatsApp/Facebook con la foto del auto). Los crawlers no
+# ejecutan JS, así que la inyección DEBE hacerse en el servidor.
+FROM node:22-alpine AS runtime
+WORKDIR /app
 
-# Configuración con fallback SPA
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# La anon key de Supabase es PÚBLICA (ya va embebida en el bundle del
+# frontend), por eso es seguro exponerla también en runtime. Sirve para
+# que el servidor consulte los datos del auto al generar el preview.
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY \
+    NODE_ENV=production \
+    PORT=80
 
-# Archivos estáticos generados por Vite
-COPY --from=build /app/dist /usr/share/nginx/html
+# Archivos estáticos generados por Vite + servidor
+COPY --from=build /app/dist ./dist
+COPY server.js ./server.js
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.js"]

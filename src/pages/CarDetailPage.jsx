@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   ChevronLeft, ChevronRight, Star, Car, Calendar, Gauge,
-  Settings2, Fuel, Palette, MessageCircle, Check, ArrowRight, Maximize2, FileText
+  Settings2, Fuel, Palette, MessageCircle, Check, ArrowRight, Maximize2, FileText, Share2
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -45,6 +45,28 @@ export default function CarDetailPage() {
   function openLightbox(index) {
     setLightboxIndex(index);
     setLightboxOpen(true);
+  }
+
+  async function handleShare() {
+    const url = window.location.href;
+    const title = car ? `${car.marca} ${car.modelo} ${car.version} ${car.anio} | Carvía` : "Carvía";
+    const text = car ? `Mira este ${car.marca} ${car.modelo} ${car.anio} en Carvía` : "";
+    // Web Share API (móvil): abre el menú nativo (WhatsApp, etc.)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (err) {
+        if (err?.name === "AbortError") return; // el usuario canceló
+      }
+    }
+    // Fallback (escritorio): copiar el enlace al portapapeles
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Enlace copiado");
+    } catch {
+      toast.error("No se pudo compartir el enlace");
+    }
   }
 
   if (loading) {
@@ -92,15 +114,23 @@ export default function CarDetailPage() {
         <meta property="og:description" content={car.descripcion || ""} />
         {imgs[0] && <meta property="og:image" content={imgs[0]} />}
         <meta property="og:type" content="product" />
+        <meta property="og:url" content={typeof window !== "undefined" ? window.location.href : ""} />
+        <meta name="twitter:card" content="summary_large_image" />
+        {imgs[0] && <meta name="twitter:image" content={imgs[0]} />}
       </Helmet>
 
       <Navbar />
 
       <div className="page detail">
         <div className="container">
-          <button className="back-btn" onClick={() => navigate(-1)}>
-            <ChevronLeft size={18} /> Regresar al catálogo
-          </button>
+          <div className="detail-top">
+            <button className="back-btn" onClick={() => navigate(-1)}>
+              <ChevronLeft size={18} /> Regresar al catálogo
+            </button>
+            <button className="share-btn" onClick={handleShare} aria-label="Compartir">
+              <Share2 size={16} /> Compartir
+            </button>
+          </div>
 
           <div className="detail-grid">
             {/* Galería */}

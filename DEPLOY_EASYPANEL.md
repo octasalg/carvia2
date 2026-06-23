@@ -4,7 +4,10 @@ Guía para desplegar la web de catálogo de seminuevos **CARVÍA** en un VPS de
 Hostinger (KVM 2 · Ubuntu 24.04 · Easypanel) usando Docker, desde GitHub.
 
 - **Framework:** React 19 + Vite 8 (SPA estática)
-- **Servidor en runtime:** Nginx (puerto **80** dentro del contenedor)
+- **Servidor en runtime:** Node (`server.js`, sin dependencias) en el puerto **80**
+  dentro del contenedor. Sirve los archivos estáticos e **inyecta etiquetas Open
+  Graph por petición** para que los enlaces compartidos por WhatsApp/Facebook
+  muestren la foto del auto (los crawlers no ejecutan JavaScript).
 - **Base de datos / Auth / Storage:** Supabase (claves públicas)
 
 ---
@@ -42,7 +45,12 @@ En la pestaña **Source** del servicio:
    - **Dockerfile path:** `Dockerfile`.
 
 > Easypanel detectará el `Dockerfile` y construirá la imagen multi-stage
-> (Node para el build → Nginx para servir).
+> (Node para el build → Node `server.js` para servir).
+>
+> ⚠️ El servidor de runtime consulta Supabase para generar el preview de cada
+> auto, así que `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` deben estar
+> definidas también en el entorno de la App (Easypanel las pasa al contenedor en
+> ejecución, no sólo durante el build). La anon key es pública, es seguro.
 
 ---
 
