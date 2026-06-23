@@ -6,6 +6,16 @@
   <link rel="icon" type="image/svg+xml" href="/CarviaIso.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FGLBJB9JBF"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    // send_page_view:false — las vistas de página se envían manualmente desde React Router (SPA)
+    gtag('config', 'G-FGLBJB9JBF', { send_page_view: false });
+  </script>
+
   <!-- OG_START -->
   <title>Carvía — Autos seminuevos de calidad</title>
   <meta name="description" content="Carvía — Autos seminuevos seleccionados y con garantía. Encuentra tu próximo auto." />

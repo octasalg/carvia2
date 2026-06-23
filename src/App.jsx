@@ -12,7 +12,14 @@ import CatalogPage from "./pages/CatalogPage";
 import CarDetailPage from "./pages/CarDetailPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import usePageTracking from "./hooks/usePageTracking";
 import "./App.css";
+
+/** Registra las vistas de página en Google Analytics al navegar (SPA) */
+function AnalyticsTracker() {
+  usePageTracking();
+  return null;
+}
 
 /** Estilo global de toasts — consistente con el diseño de Carvía */
 const TOAST_OPTS = {
@@ -37,6 +44,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AnalyticsTracker />
         <div className="app">
           <Routes>
             <Route path="/" element={<HomePage />} />
