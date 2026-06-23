@@ -78,8 +78,11 @@ function absUrl(origin, src) {
 }
 
 /* ---- Construye el bloque de etiquetas OG para una respuesta ---- */
+const DEFAULT_OG_IMAGE = "/og-carvia.png"; // 1200x630, logo de Carvía
+
 function ogTags(origin, pathname, car) {
   let title, description, image, type, url = origin + pathname;
+  let knownSize = false; // sólo el banner por defecto tiene medidas conocidas
   if (car) {
     const name = `${car.marca} ${car.modelo} ${car.version || ""} ${car.anio}`.replace(/\s+/g, " ").trim();
     title = `${name} — ${mxn(car.precio)} | Carvía`;
@@ -87,15 +90,17 @@ function ogTags(origin, pathname, car) {
       (car.descripcion && String(car.descripcion).slice(0, 180)) ||
       `${km(car.kilometraje)} · ${car.transmision || ""} · ${car.colorExterior || car.color_exterior || ""}`.trim();
     const imgs = Array.isArray(car.imagenes) ? car.imagenes : [];
-    image = absUrl(origin, imgs[0]) || `${origin}/CarviaIso.png`;
+    image = absUrl(origin, imgs[0]);
+    if (!image) { image = origin + DEFAULT_OG_IMAGE; knownSize = true; }
     type = "product";
   } else {
     title = "Carvía — Autos seminuevos de calidad";
     description = "Autos seminuevos seleccionados y con garantía. Encuentra tu próximo auto.";
-    image = `${origin}/CarviaIso.png`;
+    image = origin + DEFAULT_OG_IMAGE;
+    knownSize = true;
     type = "website";
   }
-  return [
+  const tags = [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(description)}" />`,
     `<meta property="og:site_name" content="Carvía" />`,
@@ -105,11 +110,18 @@ function ogTags(origin, pathname, car) {
     `<meta property="og:url" content="${esc(url)}" />`,
     `<meta property="og:image" content="${esc(image)}" />`,
     `<meta property="og:image:alt" content="${esc(title)}" />`,
+  ];
+  if (knownSize) {
+    tags.push(`<meta property="og:image:width" content="1200" />`);
+    tags.push(`<meta property="og:image:height" content="630" />`);
+  }
+  tags.push(
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(title)}" />`,
     `<meta name="twitter:description" content="${esc(description)}" />`,
     `<meta name="twitter:image" content="${esc(image)}" />`,
-  ].join("\n  ");
+  );
+  return tags.join("\n  ");
 }
 
 function injectOg(html, tags) {
