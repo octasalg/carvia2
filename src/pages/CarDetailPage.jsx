@@ -9,7 +9,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import LightboxViewer from "../components/LightboxViewer";
 import { getAutoById } from "../services/autos";
-import { mxn, km, waLink } from "../data/seed";
+import { mxn, km, waLink, slug } from "../data/seed";
 import { sendContactEmail } from "../lib/emailjs";
 import { saveContacto } from "../services/autos";
 import toast from "react-hot-toast";
@@ -40,6 +40,19 @@ export default function CarDetailPage() {
     }
     setCar(data);
     setLoading(false);
+
+    // Analytics (GA4): enviamos el page_view aquí, ya con el auto cargado, usando una
+    // ruta "virtual" legible (/auto/marca-modelo-version-anio) en lugar del id. Así el
+    // reporte estándar de "Páginas y pantallas" muestra el nombre del auto, no un id.
+    if (typeof window.gtag === "function") {
+      const nombre = `${data.marca} ${data.modelo} ${data.version} ${data.anio}`;
+      window.gtag("event", "page_view", {
+        page_path: `/auto/${slug(nombre)}`,
+        page_location: window.location.href,
+        page_title: `${nombre} | Carvía`,
+        send_to: "G-FGLBJB9JBF",
+      });
+    }
   }
 
   function openLightbox(index) {

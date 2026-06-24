@@ -18,6 +18,12 @@ export const TYPES = ["Sedán", "Hatchback", "SUV", "Pickup", "Coupé"];
 export const mxn = (n) => "$" + Number(n || 0).toLocaleString("es-MX");
 export const km = (n) => Number(n || 0).toLocaleString("es-MX") + " km";
 export const uid = () => crypto.randomUUID ? crypto.randomUUID() : "c" + Math.random().toString(36).slice(2, 9);
+/* Convierte texto en slug legible para URLs/analytics: "Toyota Corolla LE" → "toyota-corolla-le" */
+export const slug = (s) =>
+  String(s || "")
+    .normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "") // quita acentos
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 export const today = () => new Date().toISOString().slice(0, 10);
 
 export const img = (id, w = 1200) =>

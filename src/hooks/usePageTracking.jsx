@@ -15,6 +15,10 @@ export default function usePageTracking() {
   useEffect(() => {
     if (typeof window.gtag !== "function") return;
 
+    // El detalle de auto (/auto/:id) envía su propio page_view con el nombre del
+    // auto ya cargado, así que aquí lo omitimos para no mandar uno con título genérico.
+    if (location.pathname.startsWith("/auto/")) return;
+
     window.gtag("event", "page_view", {
       page_path: location.pathname + location.search,
       page_location: window.location.href,
