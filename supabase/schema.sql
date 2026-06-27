@@ -22,6 +22,8 @@ create table if not exists public.autos (
   transmision     text,
   motor           text,
   tipo            text,
+  potencia        integer,
+  rendimiento     numeric,
   color_exterior  text,
   color_interior  text,
   descripcion     text,
@@ -71,6 +73,12 @@ alter table public.autos
 -- Etiqueta "Precio especial" (cinta en el catálogo). Idempotente, no borra datos.
 alter table public.autos
   add column if not exists precio_especial boolean default false;
+
+-- Potencia (HP) y rendimiento (km/l) para el identificador. Idempotente, no borra datos.
+alter table public.autos
+  add column if not exists potencia integer;
+alter table public.autos
+  add column if not exists rendimiento numeric;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)

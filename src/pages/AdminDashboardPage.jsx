@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, Star, Car,
   LogOut, LayoutDashboard, X, Upload, ArrowRight, Images, Save,
-  ClipboardPaste, Wand2, ChevronDown,
+  ClipboardPaste, Wand2, ChevronDown, Printer,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
@@ -17,7 +17,16 @@ import {
 import { getHeroImages, saveHeroImages } from "../services/heroImages";
 import { BRANDS, TRANSMISSIONS, TYPES, mxn, km, uid, today } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
+import { printIdentificador } from "../utils/identificador";
 import toast from "react-hot-toast";
+
+/** Genera/imprime el identificador (hoja A4) del auto sin pedir más datos. */
+function generarIdentificador(car) {
+  const ok = printIdentificador(car);
+  if (!ok) {
+    toast.error("Permite las ventanas emergentes para generar el identificador");
+  }
+}
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -203,6 +212,7 @@ export default function AdminDashboardPage() {
                         {c.proximamente && <span className="tag tag-proximamente-admin">⏳ Próximamente</span>}
                       </div>
                       <div className="ar-actions">
+                        <button title="Generar identificador" className="iconbtn" onClick={() => generarIdentificador(c)}><Printer size={16} /></button>
                         <button title="Destacar" className={`iconbtn ${c.destacado ? "on" : ""}`} onClick={() => toggle(c.id, "destacado")}><Star size={16} /></button>
                         <button title={c.visible ? "Ocultar" : "Mostrar"} className="iconbtn" onClick={() => toggle(c.id, "visible")}>
                           {c.visible ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -317,7 +327,7 @@ function HeroSection() {
 function CarForm({ initial, onSave, onClose }) {
   const blank = {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
-    kilometraje: "", transmision: "Automática", motor: "", tipo: "Sedán",
+    kilometraje: "", transmision: "Automática", motor: "", potencia: "", rendimiento: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
     imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false, precio_especial: false,
   };
@@ -347,6 +357,8 @@ function CarForm({ initial, onSave, onClose }) {
       ...(parsed.transmision && { transmision: parsed.transmision }),
       ...(parsed.tipo && { tipo: parsed.tipo }),
       ...(parsed.motor && { motor: parsed.motor }),
+      ...(parsed.potencia != null && { potencia: parsed.potencia }),
+      ...(parsed.rendimiento != null && { rendimiento: parsed.rendimiento }),
       ...(parsed.descripcion && { descripcion: parsed.descripcion }),
     }));
     if (parsed.equipInput) setEquipInput(parsed.equipInput);
@@ -372,6 +384,8 @@ function CarForm({ initial, onSave, onClose }) {
       precio: Number(f.precio) || 0,
       kilometraje: Number(f.kilometraje) || 0,
       anio: Number(f.anio) || new Date().getFullYear(),
+      potencia: f.potencia === "" || f.potencia == null ? null : Number(f.potencia),
+      rendimiento: f.rendimiento === "" || f.rendimiento == null ? null : Number(f.rendimiento),
       imagenes: imgs,
       equipamiento: equipInput.split(",").map((s) => s.trim()).filter(Boolean),
     });
@@ -441,6 +455,8 @@ function CarForm({ initial, onSave, onClose }) {
               </select>
             </div>
             <div className="field"><label>Motor</label><input value={f.motor} onChange={set("motor")} placeholder="2.5L 4 cil." /></div>
+            <div className="field"><label>Potencia (HP)</label><input type="number" value={f.potencia} onChange={set("potencia")} placeholder="170" /></div>
+            <div className="field"><label>Rendimiento (km/l)</label><input type="number" step="0.1" value={f.rendimiento} onChange={set("rendimiento")} placeholder="12.5" /></div>
             <div className="field"><label>Color exterior</label><input value={f.colorExterior} onChange={set("colorExterior")} placeholder="Rojo metálico" /></div>
             <div className="field"><label>Color interior</label><input value={f.colorInterior} onChange={set("colorInterior")} placeholder="Negro piel" /></div>
             <div className="field">
@@ -546,10 +562,19 @@ function CarForm({ initial, onSave, onClose }) {
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={submit}>
-            {isEdit ? "Guardar cambios" : "Crear auto"} <ArrowRight size={15} />
+          <button
+            className="btn btn-ghost"
+            title="Genera la hoja A4 para imprimir y pegar en el auto"
+            onClick={() => generarIdentificador(f)}
+          >
+            <Printer size={15} /> Identificador
           </button>
+          <div style={{ display: "flex", gap: 10, marginLeft: "auto" }}>
+            <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+            <button className="btn btn-primary" onClick={submit}>
+              {isEdit ? "Guardar cambios" : "Crear auto"} <ArrowRight size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

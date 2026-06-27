@@ -169,9 +169,17 @@ export function parseCarText(rawText) {
       continue;
     }
 
-    // HP: "340 hp"
-    if (/^\d+\s*hp$/i.test(line)) {
-      result.motor = result.motor ? `${result.motor} ${line}` : line;
+    // Potencia: "340 hp" → campo potencia
+    const hpMatch = line.match(/^(\d+)\s*(hp|cv|caballos)\b/i);
+    if (hpMatch) {
+      result.potencia = parseInt(hpMatch[1], 10);
+      continue;
+    }
+
+    // Rendimiento combinado: "12.5 km/l", "Rendimiento 14 km/l"
+    const rendMatch = line.match(/(\d+(?:[.,]\d+)?)\s*km\s*\/?\s*l\b/i);
+    if (rendMatch && !/(ciudad|carretera)/i.test(line)) {
+      result.rendimiento = parseFloat(rendMatch[1].replace(",", "."));
       continue;
     }
 

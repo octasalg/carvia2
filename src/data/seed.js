@@ -46,6 +46,7 @@ export const SEED = [
   {
     id: "c1", marca: "Mazda", modelo: "Mazda 3", version: "i Grand Touring", anio: 2021,
     precio: 339000, kilometraje: 38500, transmision: "Automática", motor: "2.5L 4 cil. 186 hp",
+    potencia: 186, rendimiento: 14.5,
     tipo: "Hatchback", colorExterior: "Rojo Soul Metálico", colorInterior: "Negro piel",
     descripcion: "Mazda 3 Grand Touring en estado impecable, un solo dueño, servicios de agencia al corriente. Conducción deportiva con acabados premium.",
     equipamiento: ["Quemacocos eléctrico", "Pantalla MZD Connect", "Cámara de reversa", "Head-Up Display", "Asientos en piel", "CarPlay / Android Auto", "Sensores de punto ciego"],
@@ -55,6 +56,7 @@ export const SEED = [
   {
     id: "c2", marca: "Nissan", modelo: "Versa", version: "Advance", anio: 2022,
     precio: 289000, kilometraje: 24300, transmision: "CVT", motor: "1.6L 4 cil. 118 hp",
+    potencia: 118, rendimiento: 18.2,
     tipo: "Sedán", colorExterior: "Gris Plata", colorInterior: "Negro tela",
     descripcion: "Versa Advance modelo reciente con bajo kilometraje. Ideal por su rendimiento de combustible y amplitud interior.",
     equipamiento: ["Pantalla táctil 7\"", "Cámara de reversa", "Control crucero", "Climatizador automático", "Llave inteligente", "Bluetooth"],
@@ -64,6 +66,7 @@ export const SEED = [
   {
     id: "c3", marca: "Kia", modelo: "Forte", version: "EX Pack", anio: 2021,
     precio: 269000, kilometraje: 41200, transmision: "Automática", motor: "1.6L 4 cil. 121 hp",
+    potencia: 121, rendimiento: 17.0,
     tipo: "Sedán", colorExterior: "Blanco Perla", colorInterior: "Negro tela",
     descripcion: "Kia Rio EX bien cuidado, perfecto primer auto. Garantía de fábrica vigente y excelente equipamiento de seguridad.",
     equipamiento: ["Pantalla 8\"", "CarPlay / Android Auto", "6 bolsas de aire", "Cámara de reversa", "Faros LED", "Rines de aluminio"],
@@ -73,6 +76,7 @@ export const SEED = [
   {
     id: "c4", marca: "Toyota", modelo: "Corolla", version: "LE", anio: 2020,
     precio: 319000, kilometraje: 52800, transmision: "CVT", motor: "1.8L 4 cil. 139 hp",
+    potencia: 139, rendimiento: 16.1,
     tipo: "Sedán", colorExterior: "Gris Oxford", colorInterior: "Beige tela",
     descripcion: "Toyota Corolla LE, sinónimo de confiabilidad. Mantenimientos documentados y excelente estado general de carrocería.",
     equipamiento: ["Toyota Safety Sense", "Pantalla 8\"", "Control crucero adaptativo", "Cámara de reversa", "Climatizador", "Faros LED"],
@@ -82,6 +86,7 @@ export const SEED = [
   {
     id: "c5", marca: "Honda", modelo: "Civic", version: "Turbo", anio: 2019,
     precio: 359000, kilometraje: 61500, transmision: "CVT", motor: "1.5L Turbo 174 hp",
+    potencia: 174, rendimiento: 15.3,
     tipo: "Sedán", colorExterior: "Negro Cristal", colorInterior: "Negro piel",
     descripcion: "Honda Civic Turbo con motor potente y eficiente. Look deportivo, interior espacioso y tecnología de punta.",
     equipamiento: ["Honda Sensing", "Quemacocos", "Asientos en piel", "Pantalla táctil", "Arranque por botón", "Rines deportivos", "Sensores de proximidad"],
