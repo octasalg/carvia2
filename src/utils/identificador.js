@@ -64,6 +64,17 @@ const esc = (s) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+/* ── Respaldo: extraer potencia/rendimiento de texto libre (descripción/motor) ──
+   Solo se usan si el auto no tiene capturado el campo correspondiente. ── */
+function extractHp(text) {
+  const m = String(text || "").match(/(\d{2,4})\s*(?:hp|cv|caballos)\b/i);
+  return m ? parseInt(m[1], 10) : "";
+}
+function extractRend(text) {
+  const m = String(text || "").match(/(\d+(?:[.,]\d+)?)\s*km\s*\/?\s*l\b/i);
+  return m ? m[1].replace(",", ".") : "";
+}
+
 /* ── Construye el bloque .id-root con los datos del auto ── */
 function buildIdRoot(car, folio) {
   const marca = esc((car.marca || "").trim());
@@ -75,9 +86,15 @@ function buildIdRoot(car, folio) {
 
   const motor = esc((car.motor || "").trim());
   const trans = esc((car.transmision || "").trim());
-  const potRaw = String(car.potencia ?? "").trim();
+
+  // Potencia: usa el campo capturado; si está vacío, lo busca en motor/descripción.
+  let potRaw = String(car.potencia ?? "").trim();
+  if (!potRaw) potRaw = String(extractHp(`${car.motor || ""} ${car.descripcion || ""}`));
   const potencia = potRaw ? esc(potRaw.replace(/\s*hp\s*$/i, "")) + " HP" : "";
-  const rendRaw = String(car.rendimiento ?? "").trim();
+
+  // Rendimiento: usa el campo capturado; si está vacío, lo busca en la descripción.
+  let rendRaw = String(car.rendimiento ?? "").trim();
+  if (!rendRaw) rendRaw = String(extractRend(`${car.descripcion || ""} ${car.motor || ""}`));
   const rend = rendRaw ? esc(rendRaw.replace(/\s*km\s*\/?\s*l\s*$/i, "")) + " km/l" : "";
 
   const { label: facturaLabel, badge: facturaBadge } = facturaInfo(car.factura);
