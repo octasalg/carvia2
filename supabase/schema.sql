@@ -41,15 +41,34 @@ create table if not exists public.autos (
   updated_at      timestamptz default now()
 );
 
+-- Catálogo privado de clasificaciones que el administrador puede ampliar.
+create table if not exists public.clasificaciones_internas (
+  id            uuid primary key default gen_random_uuid(),
+  nombre        text not null,
+  clave_legacy  text unique,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  constraint clasificaciones_internas_nombre_valido
+    check (char_length(trim(nombre)) between 1 and 80)
+);
+
+create unique index if not exists clasificaciones_internas_nombre_unico
+  on public.clasificaciones_internas (lower(trim(nombre)));
+
+insert into public.clasificaciones_internas (nombre, clave_legacy)
+values
+  ('Stock propio', 'stock_propio'),
+  ('Consignación propia', 'consignacion_propia'),
+  ('Aliado', 'aliado')
+on conflict (clave_legacy) do update set nombre = excluded.nombre;
+
 -- Control interno del inventario. Se mantiene fuera de `autos` para que
 -- nunca forme parte de las consultas públicas del catálogo.
 create table if not exists public.auto_control_interno (
-  auto_id        uuid primary key references public.autos(id) on delete cascade,
-  clasificacion  text not null check (
-    clasificacion in ('stock_propio', 'consignacion_propia', 'aliado')
-  ),
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
+  auto_id            uuid primary key references public.autos(id) on delete cascade,
+  clasificacion_id   uuid not null references public.clasificaciones_internas(id) on delete restrict,
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
 );
 
 -- Tabla de configuración general (key-value)
@@ -98,9 +117,12 @@ alter table public.autos
 alter table public.autos enable row level security;
 alter table public.contactos enable row level security;
 alter table public.settings enable row level security;
+alter table public.clasificaciones_internas enable row level security;
 alter table public.auto_control_interno enable row level security;
 
+revoke all on table public.clasificaciones_internas from anon;
 revoke all on table public.auto_control_interno from anon;
+grant select, insert, update, delete on table public.clasificaciones_internas to authenticated;
 grant select, insert, update, delete on table public.auto_control_interno to authenticated;
 
 -- Autos: usuarios anónimos solo ven los visibles
@@ -125,6 +147,18 @@ create policy "Auth puede gestionar autos"
 
 -- Control interno: no existe política para `anon`, por lo que el catálogo
 -- público no puede leer ni modificar estas clasificaciones.
+create policy "Auth puede ver clasificaciones internas"
+  on public.clasificaciones_internas for select
+  to authenticated
+  using (true);
+
+create policy "Auth puede gestionar clasificaciones internas"
+  on public.clasificaciones_internas
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
 create policy "Auth puede ver control interno de autos"
   on public.auto_control_interno for select
   to authenticated
@@ -181,6 +215,11 @@ create trigger autos_updated_at
 drop trigger if exists auto_control_interno_updated_at on public.auto_control_interno;
 create trigger auto_control_interno_updated_at
   before update on public.auto_control_interno
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists clasificaciones_internas_updated_at on public.clasificaciones_internas;
+create trigger clasificaciones_internas_updated_at
+  before update on public.clasificaciones_internas
   for each row execute function public.set_updated_at();
 
 -- ============================================================

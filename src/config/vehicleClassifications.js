@@ -1,17 +1,5 @@
-export const VEHICLE_CLASSIFICATIONS = Object.freeze([
-  { value: "stock_propio", label: "Stock propio" },
-  { value: "consignacion_propia", label: "Consignación propia" },
-  { value: "aliado", label: "Aliado" },
+export const DEFAULT_VEHICLE_CLASSIFICATIONS = Object.freeze([
+  { id: "stock_propio", name: "Stock propio" },
+  { id: "consignacion_propia", name: "Consignación propia" },
+  { id: "aliado", name: "Aliado" },
 ]);
-
-const CLASSIFICATION_LABELS = Object.fromEntries(
-  VEHICLE_CLASSIFICATIONS.map(({ value, label }) => [value, label]),
-);
-
-export function getVehicleClassificationLabel(value) {
-  return CLASSIFICATION_LABELS[value] || "Sin clasificar";
-}
-
-export function isValidVehicleClassification(value) {
-  return Object.prototype.hasOwnProperty.call(CLASSIFICATION_LABELS, value);
-}

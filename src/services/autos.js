@@ -4,6 +4,7 @@
    ============================================================ */
 import { supabase, isConfigured } from "../lib/supabase";
 import { SEED, uid, today } from "../data/seed";
+import { DEFAULT_VEHICLE_CLASSIFICATIONS } from "../config/vehicleClassifications";
 
 const PAGE_SIZE = 12;
 
@@ -14,6 +15,7 @@ function fromDB(row) {
   const internalControl = Array.isArray(row.auto_control_interno)
     ? row.auto_control_interno[0]
     : row.auto_control_interno;
+  const internalClassification = internalControl?.clasificacion;
   const publicRow = { ...row };
   delete publicRow.auto_control_interno;
   return {
@@ -24,7 +26,10 @@ function fromDB(row) {
     fechaCreacion: row.created_at,
     fechaActualizacion: row.updated_at,
     ...(hasInternalControl
-      ? { clasificacionInterna: internalControl?.clasificacion || "" }
+      ? {
+          clasificacionInternaId: internalControl?.clasificacion_id || "",
+          clasificacionInterna: internalClassification?.nombre || "",
+        }
       : {}),
   };
 }
@@ -40,6 +45,7 @@ function toDB(car) {
 
   [
     "colorExterior", "colorInterior", "coverPosition", "clasificacionInterna",
+    "clasificacionInternaId",
     "fechaCreacion", "fechaActualizacion", "color_exterior", "color_interior",
     "cover_position", "created_at", "updated_at",
   ].forEach((key) => delete rest[key]);
@@ -52,12 +58,12 @@ function toDB(car) {
   };
 }
 
-async function saveInternalClassification(autoId, clasificacionInterna) {
-  if (clasificacionInterna === undefined) return { error: null };
+async function saveInternalClassification(autoId, clasificacionInternaId) {
+  if (clasificacionInternaId === undefined) return { error: null };
   const { error } = await supabase
     .from("auto_control_interno")
     .upsert(
-      { auto_id: autoId, clasificacion: clasificacionInterna },
+      { auto_id: autoId, clasificacion_id: clasificacionInternaId },
       { onConflict: "auto_id" },
     );
   return { error };
@@ -65,6 +71,7 @@ async function saveInternalClassification(autoId, clasificacionInterna) {
 
 /* ---------- Filtrado local (fallback sin Supabase) ---------- */
 let _localCars = null;
+let _localClassifications = null;
 
 function getLocalCars() {
   if (_localCars) return _localCars;
@@ -80,6 +87,22 @@ function getLocalCars() {
 function saveLocalCars(cars) {
   _localCars = cars;
   try { localStorage.setItem("carvia:inventory:v2", JSON.stringify(cars)); } catch { /* localStorage puede no estar disponible */ }
+}
+
+function getLocalClassifications() {
+  if (_localClassifications) return _localClassifications;
+  try {
+    const stored = localStorage.getItem("carvia:internal-classifications:v1");
+    _localClassifications = stored ? JSON.parse(stored) : [...DEFAULT_VEHICLE_CLASSIFICATIONS];
+  } catch {
+    _localClassifications = [...DEFAULT_VEHICLE_CLASSIFICATIONS];
+  }
+  return _localClassifications;
+}
+
+function saveLocalClassifications(options) {
+  _localClassifications = options;
+  try { localStorage.setItem("carvia:internal-classifications:v1", JSON.stringify(options)); } catch { /* localStorage puede no estar disponible */ }
 }
 
 function applyLocalFilters(cars, filters) {
@@ -136,17 +159,76 @@ export async function getAutos({ filters = {}, page = 0, limit = PAGE_SIZE } = {
  */
 export async function getAutosAdmin() {
   if (!isConfigured) {
-    const cars = getLocalCars();
+    const options = getLocalClassifications();
+    const cars = getLocalCars().map((car) => {
+      if (car.clasificacionInternaId) return car;
+      const legacyOption = options.find((option) => (
+        option.id === car.clasificacionInterna || option.name === car.clasificacionInterna
+      ));
+      return legacyOption
+        ? { ...car, clasificacionInternaId: legacyOption.id, clasificacionInterna: legacyOption.name }
+        : car;
+    });
     return { data: cars, count: cars.length, error: null };
   }
   try {
     const { data, count, error } = await supabase
       .from("autos")
-      .select("*, auto_control_interno(clasificacion)", { count: "exact" })
+      .select("*, auto_control_interno(clasificacion_id, clasificacion:clasificaciones_internas(id,nombre))", { count: "exact" })
       .order("created_at", { ascending: false });
     return { data: data?.map(fromDB) ?? [], count: count ?? 0, error };
   } catch (error) {
     return { data: [], count: 0, error };
+  }
+}
+
+/** Obtiene las clasificaciones privadas disponibles para el inventario. */
+export async function getVehicleClassificationOptions() {
+  if (!isConfigured) {
+    return { data: getLocalClassifications(), error: null };
+  }
+  try {
+    const { data, error } = await supabase
+      .from("clasificaciones_internas")
+      .select("id,nombre")
+      .order("nombre", { ascending: true });
+    return {
+      data: (data || []).map(({ id, nombre }) => ({ id, name: nombre })),
+      error,
+    };
+  } catch (error) {
+    return { data: [], error };
+  }
+}
+
+/** Crea una clasificación privada reutilizable desde el panel administrativo. */
+export async function createVehicleClassificationOption(name) {
+  const normalizedName = String(name || "").trim().replace(/\s+/g, " ");
+  if (!normalizedName || normalizedName.length > 80) {
+    return { data: null, error: new Error("La clasificación debe tener entre 1 y 80 caracteres") };
+  }
+
+  if (!isConfigured) {
+    const options = getLocalClassifications();
+    const existing = options.find((option) => option.name.toLocaleLowerCase("es-MX") === normalizedName.toLocaleLowerCase("es-MX"));
+    if (existing) return { data: existing, error: null };
+    const created = { id: uid(), name: normalizedName };
+    saveLocalClassifications([...options, created]);
+    return { data: created, error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("clasificaciones_internas")
+      .insert({ nombre: normalizedName })
+      .select("id,nombre")
+      .single();
+    return {
+      data: data ? { id: data.id, name: data.nombre } : null,
+      error,
+    };
+  } catch (error) {
+    return { data: null, error };
   }
 }
 
@@ -180,14 +262,18 @@ export async function createAuto(carData) {
     const { data, error } = await supabase.from("autos").insert(toDB(carData)).select().single();
     if (error || !data) return { data: fromDB(data), error };
 
-    const internalResult = await saveInternalClassification(data.id, carData.clasificacionInterna);
+    const internalResult = await saveInternalClassification(data.id, carData.clasificacionInternaId);
     if (internalResult.error) {
       await supabase.from("autos").delete().eq("id", data.id);
       return { data: null, error: internalResult.error };
     }
 
     return {
-      data: { ...fromDB(data), clasificacionInterna: carData.clasificacionInterna },
+      data: {
+        ...fromDB(data),
+        clasificacionInternaId: carData.clasificacionInternaId,
+        clasificacionInterna: carData.clasificacionInterna,
+      },
       error: null,
     };
   } catch (error) {
@@ -215,14 +301,17 @@ export async function updateAuto(id, carData) {
       .single();
     if (error || !data) return { data: fromDB(data), error };
 
-    const internalResult = await saveInternalClassification(id, carData.clasificacionInterna);
+    const internalResult = await saveInternalClassification(id, carData.clasificacionInternaId);
     if (internalResult.error) return { data: fromDB(data), error: internalResult.error };
 
     return {
       data: {
         ...fromDB(data),
-        ...(carData.clasificacionInterna !== undefined
-          ? { clasificacionInterna: carData.clasificacionInterna }
+        ...(carData.clasificacionInternaId !== undefined
+          ? {
+              clasificacionInternaId: carData.clasificacionInternaId,
+              clasificacionInterna: carData.clasificacionInterna,
+            }
           : {}),
       },
       error: null,

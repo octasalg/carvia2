@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
@@ -12,17 +12,12 @@ import FocalPointPicker from "../components/FocalPointPicker";
 import { useAuth } from "../hooks/useAuth";
 import {
   getAutosAdmin, createAuto, updateAuto, deleteAuto,
-  toggleVisible, toggleDestacado,
+  getVehicleClassificationOptions, createVehicleClassificationOption,
 } from "../services/autos";
 import { getHeroImages, saveHeroImages } from "../services/heroImages";
-import { BRANDS, TRANSMISSIONS, TYPES, mxn, km, uid, today } from "../data/seed";
+import { BRANDS, TRANSMISSIONS, TYPES, mxn, km } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
-import {
-  VEHICLE_CLASSIFICATIONS,
-  getVehicleClassificationLabel,
-  isValidVehicleClassification,
-} from "../config/vehicleClassifications";
 import toast from "react-hot-toast";
 
 /** Genera/imprime el identificador (hoja A4) del auto sin pedir más datos. */
@@ -35,8 +30,9 @@ function generarIdentificador(car) {
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { logout, session } = useAuth();
+  const { logout } = useAuth();
   const [cars, setCars] = useState([]);
+  const [classificationOptions, setClassificationOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [view, setView] = useState("all"); // all | visible | hidden | featured
@@ -50,10 +46,32 @@ export default function AdminDashboardPage() {
 
   async function loadCars() {
     setLoading(true);
-    const { data, error } = await getAutosAdmin();
-    if (error) { toast.error("Error al cargar autos"); }
-    else { setCars(data || []); }
+    const [carsResult, classificationsResult] = await Promise.all([
+      getAutosAdmin(),
+      getVehicleClassificationOptions(),
+    ]);
+    if (carsResult.error || classificationsResult.error) {
+      toast.error("Error al cargar el inventario interno");
+    } else {
+      setCars(carsResult.data || []);
+      setClassificationOptions(classificationsResult.data || []);
+    }
     setLoading(false);
+  }
+
+  async function addClassification(name) {
+    const result = await createVehicleClassificationOption(name);
+    if (result.error || !result.data) {
+      const duplicate = result.error?.code === "23505";
+      toast.error(duplicate ? "Esa clasificación ya existe" : (result.error?.message || "No se pudo crear la clasificación"));
+      return result;
+    }
+    setClassificationOptions((prev) => (
+      [...prev.filter((option) => option.id !== result.data.id), result.data]
+        .sort((a, b) => a.name.localeCompare(b.name, "es-MX"))
+    ));
+    toast.success("Clasificación agregada");
+    return result;
   }
 
   async function handleLogout() {
@@ -66,7 +84,7 @@ export default function AdminDashboardPage() {
     if (view === "hidden" && c.visible) return false;
     if (view === "featured" && !c.destacado) return false;
     if (q) {
-      const hay = `${c.marca} ${c.modelo} ${c.version} ${c.anio} ${getVehicleClassificationLabel(c.clasificacionInterna)}`.toLowerCase();
+      const hay = `${c.marca} ${c.modelo} ${c.version} ${c.anio} ${c.clasificacionInterna || "Sin clasificar"}`.toLowerCase();
       if (!hay.includes(q.toLowerCase())) return false;
     }
     return true;
@@ -212,7 +230,7 @@ export default function AdminDashboardPage() {
                       <div className="ar-meta">{c.anio}<span>{km(c.kilometraje)}</span></div>
                       <div className="ar-tags">
                         <span className={`tag ${c.clasificacionInterna ? "tag-internal" : "tag-off"}`}>
-                          {getVehicleClassificationLabel(c.clasificacionInterna)}
+                          {c.clasificacionInterna || "Sin clasificar"}
                         </span>
                         <span className={`tag ${c.visible ? "tag-on" : "tag-off"}`}>{c.visible ? "Visible" : "Oculto"}</span>
                         {c.destacado && <span className="tag tag-star"><Star size={11} /> Destacado</span>}
@@ -241,6 +259,8 @@ export default function AdminDashboardPage() {
       {editing !== null && (
         <CarForm
           initial={editing}
+          classificationOptions={classificationOptions}
+          onAddClassification={addClassification}
           onSave={saveCar}
           onClose={() => setEditing(null)}
         />
@@ -332,12 +352,12 @@ function HeroSection() {
 /* ============================================================
    FORMULARIO DE AUTO (modal)
    ============================================================ */
-function CarForm({ initial, onSave, onClose }) {
+function CarForm({ initial, classificationOptions, onAddClassification, onSave, onClose }) {
   const blank = {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", potencia: "", rendimiento: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
-    clasificacionInterna: "",
+    clasificacionInternaId: "", clasificacionInterna: "",
     imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false, precio_especial: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
@@ -347,6 +367,10 @@ function CarForm({ initial, onSave, onClose }) {
   const [urlInput, setUrlInput] = useState((initial.imagenes || []).join("\n"));
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
+  const [addingClassification, setAddingClassification] = useState(false);
+  const [newClassificationName, setNewClassificationName] = useState("");
+  const [savingClassification, setSavingClassification] = useState(false);
+  const [uploadAutoId] = useState(() => initial.id || `new-${Date.now()}`);
   const isEdit = !!initial.id;
 
   function handleAutofill() {
@@ -377,6 +401,35 @@ function CarForm({ initial, onSave, onClose }) {
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
+  function selectClassification(e) {
+    const id = e.target.value;
+    const selected = classificationOptions.find((option) => option.id === id);
+    setF((current) => ({
+      ...current,
+      clasificacionInternaId: id,
+      clasificacionInterna: selected?.name || "",
+    }));
+  }
+
+  async function addNewClassification() {
+    if (!newClassificationName.trim()) {
+      toast.error("Escribe el nombre de la nueva clasificación");
+      return;
+    }
+    setSavingClassification(true);
+    const result = await onAddClassification(newClassificationName);
+    setSavingClassification(false);
+    if (!result.error && result.data) {
+      setF((current) => ({
+        ...current,
+        clasificacionInternaId: result.data.id,
+        clasificacionInterna: result.data.name,
+      }));
+      setNewClassificationName("");
+      setAddingClassification(false);
+    }
+  }
+
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -385,7 +438,7 @@ function CarForm({ initial, onSave, onClose }) {
 
   function submit() {
     if (!f.marca || !f.modelo) { toast.error("Marca y modelo son requeridos"); return; }
-    if (!isValidVehicleClassification(f.clasificacionInterna)) {
+    if (!classificationOptions.some((option) => option.id === f.clasificacionInternaId)) {
       toast.error("Selecciona una clasificación interna");
       return;
     }
@@ -482,13 +535,47 @@ function CarForm({ initial, onSave, onClose }) {
               </select>
             </div>
             <div className="field">
-              <label>Clasificación interna *</label>
-              <select value={f.clasificacionInterna} onChange={set("clasificacionInterna")}>
+              <div className="classification-field-head">
+                <label>Clasificación interna *</label>
+                <button
+                  type="button"
+                  className="classification-add-trigger"
+                  onClick={() => setAddingClassification((current) => !current)}
+                >
+                  <Plus size={12} /> Nueva opción
+                </button>
+              </div>
+              <select value={f.clasificacionInternaId} onChange={selectClassification}>
                 <option value="">Selecciona</option>
-                {VEHICLE_CLASSIFICATIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>{label}</option>
+                {classificationOptions.map(({ id, name }) => (
+                  <option key={id} value={id}>{name}</option>
                 ))}
               </select>
+              {addingClassification && (
+                <div className="classification-add-row">
+                  <input
+                    value={newClassificationName}
+                    onChange={(e) => setNewClassificationName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addNewClassification();
+                      }
+                    }}
+                    maxLength={80}
+                    placeholder="Ej. Alianza X"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={addNewClassification}
+                    disabled={savingClassification}
+                  >
+                    {savingClassification ? "Guardando…" : "Agregar"}
+                  </button>
+                </div>
+              )}
               <span className="field-hint">Sólo visible en el panel administrativo.</span>
             </div>
           </div>
@@ -524,7 +611,7 @@ function CarForm({ initial, onSave, onClose }) {
 
             {useUploader ? (
               <ImageUploader
-                autoId={f.id || `new-${Date.now()}`}
+                autoId={uploadAutoId}
                 value={imageUrls}
                 onChange={setImageUrls}
               />
