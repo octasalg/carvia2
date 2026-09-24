@@ -13,6 +13,7 @@ import { sendContactEmail } from "../lib/emailjs";
 import { saveContacto, getAvailableBrands } from "../services/autos";
 import Counter from "../components/Counter";
 import CarCard from "../components/CarCard";
+import CertificationSection from "../components/CertificationSection";
 import SearchPanel from "../components/SearchPanel";
 import { SkeletonGrid } from "../components/SkeletonCard";
 import { getAutos } from "../services/autos";
@@ -201,6 +202,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* CERTIFICADO X CARVÍA */}
+      <div className="certification-home">
+        <div className="container">
+          <CertificationSection />
+        </div>
+      </div>
 
       {/* TESTIMONIOS — primero */}
       <Testimonials />

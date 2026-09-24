@@ -2,14 +2,19 @@ import { useNavigate } from "react-router-dom";
 import { Gauge, Settings2, FileText, Star, Car, MessageCircle, Calendar } from "lucide-react";
 import Reveal from "./Reveal";
 import { mxn, km, waLink } from "../data/seed";
+import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 
-export default function CarCard({ car, delay = 0 }) {
+export default function CarCard({ car, delay = 0, showCertificationBanner = false }) {
   const navigate = useNavigate();
+  const financing = calculateFinancing(car.precio, car.anio);
+  const monthlyPayment = financing?.monthlyPayment;
+  const hasValidMonthlyPayment = Number.isFinite(monthlyPayment) && monthlyPayment > 0;
 
   return (
     <Reveal delay={delay} className="card">
       <div className="card-media" onClick={() => navigate(`/auto/${car.id}`)}>
         <img
+          className="card-photo"
           src={car.imagenes?.[0]}
           alt={`${car.marca} ${car.modelo}`}
           loading="lazy"
@@ -17,6 +22,14 @@ export default function CarCard({ car, delay = 0 }) {
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />
         <div className="card-media-fallback"><Car size={40} /></div>
+        {showCertificationBanner && (
+          <div className="card-certification-banner">
+            <img
+              src="/images/certificado-carvia-banner.png"
+              alt="Certificado x CARVIA"
+            />
+          </div>
+        )}
         {car.vendido && <span className="card-ribbon">Vendido</span>}
         {car.precio_especial && <span className="card-ribbon card-ribbon-left">Precio especial</span>}
         <div className={`card-badges${car.precio_especial ? " card-badges-lowered" : ""}`}>
@@ -28,11 +41,18 @@ export default function CarCard({ car, delay = 0 }) {
       </div>
       <div className="card-body">
         <div className="card-top">
-          <div>
+          <div className="card-identity">
             <p className="card-brand">{car.marca}</p>
             <h3 className="card-model">{car.modelo} <span>{car.version}</span></h3>
           </div>
-          <p className="card-price">{mxn(car.precio)}</p>
+          <div className="card-price-block">
+            <p className="card-price">{mxn(car.precio)} <span>MXN</span></p>
+            {hasValidMonthlyPayment && (
+              <p className="card-monthly-payment">
+                Desde <strong>{financingCurrencyFormatter.format(monthlyPayment)}</strong>/mes
+              </p>
+            )}
+          </div>
         </div>
         <div className="card-specs">
           {car.factura && <span><FileText size={14} /> {car.factura}</span>}

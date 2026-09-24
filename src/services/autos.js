@@ -10,30 +10,57 @@ const PAGE_SIZE = 12;
 /* ---------- Mapeo DB (snake_case) ↔ App (camelCase) ---------- */
 function fromDB(row) {
   if (!row) return null;
+  const hasInternalControl = Object.prototype.hasOwnProperty.call(row, "auto_control_interno");
+  const internalControl = Array.isArray(row.auto_control_interno)
+    ? row.auto_control_interno[0]
+    : row.auto_control_interno;
+  const publicRow = { ...row };
+  delete publicRow.auto_control_interno;
   return {
-    ...row,
+    ...publicRow,
     colorExterior: row.color_exterior,
     colorInterior: row.color_interior,
     coverPosition: row.cover_position,
     fechaCreacion: row.created_at,
     fechaActualizacion: row.updated_at,
+    ...(hasInternalControl
+      ? { clasificacionInterna: internalControl?.clasificacion || "" }
+      : {}),
   };
 }
 
 function toDB(car) {
-  const {
-    colorExterior, colorInterior, coverPosition,
-    fechaCreacion, fechaActualizacion,
-    color_exterior, color_interior, cover_position,
-    created_at, updated_at,
-    ...rest
-  } = car;
+  const rest = { ...car };
+  const colorExterior = rest.colorExterior;
+  const colorInterior = rest.colorInterior;
+  const coverPosition = rest.coverPosition;
+  const colorExteriorDB = rest.color_exterior;
+  const colorInteriorDB = rest.color_interior;
+  const coverPositionDB = rest.cover_position;
+
+  [
+    "colorExterior", "colorInterior", "coverPosition", "clasificacionInterna",
+    "fechaCreacion", "fechaActualizacion", "color_exterior", "color_interior",
+    "cover_position", "created_at", "updated_at",
+  ].forEach((key) => delete rest[key]);
+
   return {
     ...rest,
-    color_exterior: colorExterior ?? color_exterior,
-    color_interior: colorInterior ?? color_interior,
-    cover_position: coverPosition ?? cover_position,
+    color_exterior: colorExterior ?? colorExteriorDB,
+    color_interior: colorInterior ?? colorInteriorDB,
+    cover_position: coverPosition ?? coverPositionDB,
   };
+}
+
+async function saveInternalClassification(autoId, clasificacionInterna) {
+  if (clasificacionInterna === undefined) return { error: null };
+  const { error } = await supabase
+    .from("auto_control_interno")
+    .upsert(
+      { auto_id: autoId, clasificacion: clasificacionInterna },
+      { onConflict: "auto_id" },
+    );
+  return { error };
 }
 
 /* ---------- Filtrado local (fallback sin Supabase) ---------- */
@@ -52,7 +79,7 @@ function getLocalCars() {
 
 function saveLocalCars(cars) {
   _localCars = cars;
-  try { localStorage.setItem("carvia:inventory:v2", JSON.stringify(cars)); } catch {}
+  try { localStorage.setItem("carvia:inventory:v2", JSON.stringify(cars)); } catch { /* localStorage puede no estar disponible */ }
 }
 
 function applyLocalFilters(cars, filters) {
@@ -115,7 +142,7 @@ export async function getAutosAdmin() {
   try {
     const { data, count, error } = await supabase
       .from("autos")
-      .select("*", { count: "exact" })
+      .select("*, auto_control_interno(clasificacion)", { count: "exact" })
       .order("created_at", { ascending: false });
     return { data: data?.map(fromDB) ?? [], count: count ?? 0, error };
   } catch (error) {
@@ -151,7 +178,18 @@ export async function createAuto(carData) {
   }
   try {
     const { data, error } = await supabase.from("autos").insert(toDB(carData)).select().single();
-    return { data: fromDB(data), error };
+    if (error || !data) return { data: fromDB(data), error };
+
+    const internalResult = await saveInternalClassification(data.id, carData.clasificacionInterna);
+    if (internalResult.error) {
+      await supabase.from("autos").delete().eq("id", data.id);
+      return { data: null, error: internalResult.error };
+    }
+
+    return {
+      data: { ...fromDB(data), clasificacionInterna: carData.clasificacionInterna },
+      error: null,
+    };
   } catch (error) {
     return { data: null, error };
   }
@@ -175,7 +213,20 @@ export async function updateAuto(id, carData) {
       .eq("id", id)
       .select()
       .single();
-    return { data: fromDB(data), error };
+    if (error || !data) return { data: fromDB(data), error };
+
+    const internalResult = await saveInternalClassification(id, carData.clasificacionInterna);
+    if (internalResult.error) return { data: fromDB(data), error: internalResult.error };
+
+    return {
+      data: {
+        ...fromDB(data),
+        ...(carData.clasificacionInterna !== undefined
+          ? { clasificacionInterna: carData.clasificacionInterna }
+          : {}),
+      },
+      error: null,
+    };
   } catch (error) {
     return { data: null, error };
   }

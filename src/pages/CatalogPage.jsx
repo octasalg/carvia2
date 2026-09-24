@@ -181,7 +181,9 @@ export default function CatalogPage() {
           ) : (
             <>
               <div className="cards-grid catalog-grid">
-                {sorted.map((c, i) => <CarCard key={c.id} car={c} delay={(i % 3) * 80} />)}
+                {sorted.map((c, i) => (
+                  <CarCard key={c.id} car={c} delay={(i % 3) * 80} showCertificationBanner />
+                ))}
               </div>
 
               {/* Load more */}

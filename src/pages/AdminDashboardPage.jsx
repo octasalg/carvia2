@@ -18,6 +18,11 @@ import { getHeroImages, saveHeroImages } from "../services/heroImages";
 import { BRANDS, TRANSMISSIONS, TYPES, mxn, km, uid, today } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
+import {
+  VEHICLE_CLASSIFICATIONS,
+  getVehicleClassificationLabel,
+  isValidVehicleClassification,
+} from "../config/vehicleClassifications";
 import toast from "react-hot-toast";
 
 /** Genera/imprime el identificador (hoja A4) del auto sin pedir más datos. */
@@ -61,7 +66,7 @@ export default function AdminDashboardPage() {
     if (view === "hidden" && c.visible) return false;
     if (view === "featured" && !c.destacado) return false;
     if (q) {
-      const hay = `${c.marca} ${c.modelo} ${c.version} ${c.anio}`.toLowerCase();
+      const hay = `${c.marca} ${c.modelo} ${c.version} ${c.anio} ${getVehicleClassificationLabel(c.clasificacionInterna)}`.toLowerCase();
       if (!hay.includes(q.toLowerCase())) return false;
     }
     return true;
@@ -206,6 +211,9 @@ export default function AdminDashboardPage() {
                       <div className="ar-price">{mxn(c.precio)}</div>
                       <div className="ar-meta">{c.anio}<span>{km(c.kilometraje)}</span></div>
                       <div className="ar-tags">
+                        <span className={`tag ${c.clasificacionInterna ? "tag-internal" : "tag-off"}`}>
+                          {getVehicleClassificationLabel(c.clasificacionInterna)}
+                        </span>
                         <span className={`tag ${c.visible ? "tag-on" : "tag-off"}`}>{c.visible ? "Visible" : "Oculto"}</span>
                         {c.destacado && <span className="tag tag-star"><Star size={11} /> Destacado</span>}
                         {c.oferta && <span className="tag tag-oferta-admin">🔥 Oferta</span>}
@@ -329,6 +337,7 @@ function CarForm({ initial, onSave, onClose }) {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", potencia: "", rendimiento: "", tipo: "Sedán",
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
+    clasificacionInterna: "",
     imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false, precio_especial: false,
   };
   const [f, setF] = useState({ ...blank, ...initial });
@@ -376,6 +385,10 @@ function CarForm({ initial, onSave, onClose }) {
 
   function submit() {
     if (!f.marca || !f.modelo) { toast.error("Marca y modelo son requeridos"); return; }
+    if (!isValidVehicleClassification(f.clasificacionInterna)) {
+      toast.error("Selecciona una clasificación interna");
+      return;
+    }
     const imgs = useUploader
       ? imageUrls
       : urlInput.split("\n").map((s) => s.trim()).filter(Boolean);
@@ -467,6 +480,16 @@ function CarForm({ initial, onSave, onClose }) {
                 <option>Seminuevos</option>
                 <option>Empresa</option>
               </select>
+            </div>
+            <div className="field">
+              <label>Clasificación interna *</label>
+              <select value={f.clasificacionInterna} onChange={set("clasificacionInterna")}>
+                <option value="">Selecciona</option>
+                {VEHICLE_CLASSIFICATIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <span className="field-hint">Sólo visible en el panel administrativo.</span>
             </div>
           </div>
 

@@ -41,6 +41,17 @@ create table if not exists public.autos (
   updated_at      timestamptz default now()
 );
 
+-- Control interno del inventario. Se mantiene fuera de `autos` para que
+-- nunca forme parte de las consultas públicas del catálogo.
+create table if not exists public.auto_control_interno (
+  auto_id        uuid primary key references public.autos(id) on delete cascade,
+  clasificacion  text not null check (
+    clasificacion in ('stock_propio', 'consignacion_propia', 'aliado')
+  ),
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now()
+);
+
 -- Tabla de configuración general (key-value)
 create table if not exists public.settings (
   key    text primary key,
@@ -87,6 +98,10 @@ alter table public.autos
 alter table public.autos enable row level security;
 alter table public.contactos enable row level security;
 alter table public.settings enable row level security;
+alter table public.auto_control_interno enable row level security;
+
+revoke all on table public.auto_control_interno from anon;
+grant select, insert, update, delete on table public.auto_control_interno to authenticated;
 
 -- Autos: usuarios anónimos solo ven los visibles
 create policy "Anon puede ver autos visibles"
@@ -103,6 +118,20 @@ create policy "Auth puede ver todos los autos"
 -- Autos: usuarios autenticados pueden insertar/actualizar/eliminar
 create policy "Auth puede gestionar autos"
   on public.autos
+  for all
+  to authenticated
+  using (true)
+  with check (true);
+
+-- Control interno: no existe política para `anon`, por lo que el catálogo
+-- público no puede leer ni modificar estas clasificaciones.
+create policy "Auth puede ver control interno de autos"
+  on public.auto_control_interno for select
+  to authenticated
+  using (true);
+
+create policy "Auth puede gestionar control interno de autos"
+  on public.auto_control_interno
   for all
   to authenticated
   using (true)
@@ -147,6 +176,11 @@ $$ language plpgsql;
 drop trigger if exists autos_updated_at on public.autos;
 create trigger autos_updated_at
   before update on public.autos
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists auto_control_interno_updated_at on public.auto_control_interno;
+create trigger auto_control_interno_updated_at
+  before update on public.auto_control_interno
   for each row execute function public.set_updated_at();
 
 -- ============================================================

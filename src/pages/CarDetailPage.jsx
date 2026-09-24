@@ -8,10 +8,14 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import LightboxViewer from "../components/LightboxViewer";
+import CertificationSection from "../components/CertificationSection";
+import FinancingCalculator from "../components/FinancingCalculator";
 import { getAutoById } from "../services/autos";
 import { mxn, km, waLink, slug } from "../data/seed";
 import { sendContactEmail } from "../lib/emailjs";
 import { saveContacto } from "../services/autos";
+import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
+import { hasMeaningfulValue } from "../utils/hasMeaningfulValue";
 import toast from "react-hot-toast";
 
 export default function CarDetailPage() {
@@ -117,6 +121,16 @@ export default function CarDetailPage() {
 
   const imgs = car.imagenes?.length ? car.imagenes : [""];
   const autoName = `${car.marca} ${car.modelo} ${car.version} ${car.anio}`;
+  const hasValidPrice = Number.isFinite(Number(car.precio)) && Number(car.precio) > 0;
+  const financing = hasValidPrice ? calculateFinancing(car.precio, car.anio) : null;
+  const visibleSpecs = [
+    { key: "invoice", label: "Factura", value: car.factura, icon: FileText },
+    { key: "year", label: "Año", value: car.anio, icon: Calendar },
+    { key: "mileage", label: "Kilometraje", value: car.kilometraje, icon: Gauge, format: km },
+    { key: "transmission", label: "Transmisión", value: car.transmision, icon: Settings2 },
+    { key: "engine", label: "Motor", value: car.motor, icon: Fuel },
+    { key: "exterior-color", label: "Color ext.", value: car.colorExterior, icon: Palette },
+  ].filter(({ value }) => hasMeaningfulValue(value));
 
   return (
     <>
@@ -150,12 +164,18 @@ export default function CarDetailPage() {
             <div className="detail-gallery">
               <div className="gallery-main" style={{ cursor: "pointer" }} onClick={() => openLightbox(activeImg)}>
                 <img
+                  className="gallery-photo"
                   src={imgs[activeImg]}
                   alt={autoName}
                   loading="eager"
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
                 <div className="gallery-fallback"><Car size={56} /></div>
+                <img
+                  className="gallery-certification"
+                  src="/images/certificado-carvia.png"
+                  alt="Certificado x CARVIA"
+                />
                 {car.destacado && <span className="card-badge"><Star size={12} /> Destacado</span>}
                 {/* Botón expand */}
                 <button className="gallery-expand" onClick={(e) => { e.stopPropagation(); openLightbox(activeImg); }} aria-label="Ver en pantalla completa">
@@ -192,14 +212,33 @@ export default function CarDetailPage() {
               <p className="detail-brand">{car.marca} · {car.anio}</p>
               <h1 className="detail-title">{car.modelo} <span>{car.version}</span></h1>
               <p className="detail-price">{mxn(car.precio)}</p>
-              <div className="detail-specs">
-                {car.factura && <div><FileText size={18} /><span>Factura</span><strong>{car.factura}</strong></div>}
-                <div><Calendar size={18} /><span>Año</span><strong>{car.anio}</strong></div>
-                <div><Gauge size={18} /><span>Kilometraje</span><strong>{km(car.kilometraje)}</strong></div>
-                <div><Settings2 size={18} /><span>Transmisión</span><strong>{car.transmision}</strong></div>
-                <div><Fuel size={18} /><span>Motor</span><strong>{car.motor}</strong></div>
-                <div><Palette size={18} /><span>Color ext.</span><strong>{car.colorExterior}</strong></div>
-              </div>
+              {hasValidPrice && (
+                <div className="detail-financing" aria-live="polite">
+                  <p className="detail-financing-label">Mensualidad estimada</p>
+                  {financing ? (
+                    <p className="detail-financing-summary">
+                      Desde <strong>{financingCurrencyFormatter.format(financing.monthlyPayment)}</strong>/mes con{" "}
+                      <strong>{financingCurrencyFormatter.format(financing.downPayment)}</strong> de enganche
+                    </p>
+                  ) : (
+                    <p className="detail-financing-unavailable">Consulta opciones de financiamiento</p>
+                  )}
+                  <p className="detail-financing-disclaimer">
+                    *Mensualidad estimada con fines informativos. Sujeta a aprobación de crédito, comisiones, seguros y condiciones aplicables.
+                  </p>
+                </div>
+              )}
+              {visibleSpecs.length > 0 && (
+                <div className="detail-specs">
+                  {visibleSpecs.map(({ key, label, value, icon: Icon, format }) => (
+                    <div className="detail-spec-item" key={key}>
+                      <Icon size={18} />
+                      <span>{label}</span>
+                      <strong>{format ? format(value) : typeof value === "string" ? value.trim() : value}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="detail-cta">
                 <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer">
                   <MessageCircle size={18} /> Cotizar por WhatsApp
@@ -209,6 +248,11 @@ export default function CarDetailPage() {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Certificado x Carvía */}
+          <div className="detail-certification">
+            <CertificationSection compact />
           </div>
 
           {/* Equipamiento */}
@@ -224,6 +268,15 @@ export default function CarDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Cotizador interactivo */}
+          <div className="detail-payment-calculator">
+            <FinancingCalculator
+              key={car.id}
+              price={car.precio}
+              vehicleYear={car.anio}
+            />
+          </div>
 
           {/* Formulario de contacto */}
           <div className="detail-contact" id="detail-contacto">
