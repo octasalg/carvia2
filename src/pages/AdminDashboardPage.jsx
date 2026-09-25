@@ -20,6 +20,29 @@ import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
 import toast from "react-hot-toast";
 
+const ADMIN_DATE_FORMATTER = new Intl.DateTimeFormat("es-MX", {
+  timeZone: "America/Mexico_City",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+const ADMIN_TIME_FORMATTER = new Intl.DateTimeFormat("es-MX", {
+  timeZone: "America/Mexico_City",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function formatRegistrationDate(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return null;
+  return {
+    date: ADMIN_DATE_FORMATTER.format(date),
+    time: ADMIN_TIME_FORMATTER.format(date),
+  };
+}
+
 /** Genera/imprime el identificador (hoja A4) del auto sin pedir más datos. */
 function generarIdentificador(car) {
   const ok = printIdentificador(car);
@@ -207,9 +230,9 @@ export default function AdminDashboardPage() {
               {loading ? (
                 <div style={{ textAlign: "center", padding: 40 }}><div className="spinner" /></div>
               ) : (
-                <div className="admin-table">
+                  <div className="admin-table">
                   <div className="atable-head">
-                    <span>Auto</span><span>Precio</span><span>Año / Km</span><span>Estado</span><span>Acciones</span>
+                    <span>Auto</span><span>Precio</span><span>Año / Km</span><span>Registrado</span><span>Estado</span><span>Acciones</span>
                   </div>
                   {filtered.length === 0 && (
                     <div className="atable-empty">No hay autos que coincidan.</div>
@@ -228,6 +251,16 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="ar-price">{mxn(c.precio)}</div>
                       <div className="ar-meta">{c.anio}<span>{km(c.kilometraje)}</span></div>
+                      {(() => {
+                        const registered = formatRegistrationDate(c.fechaCreacion);
+                        return registered ? (
+                          <time className="ar-created" dateTime={c.fechaCreacion} title={`${registered.date} ${registered.time}`}>
+                            {registered.date}<span>{registered.time}</span>
+                          </time>
+                        ) : (
+                          <span className="ar-created ar-created-empty">Sin registro</span>
+                        );
+                      })()}
                       <div className="ar-tags">
                         <span className={`tag ${c.clasificacionInterna ? "tag-internal" : "tag-off"}`}>
                           {c.clasificacionInterna || "Sin clasificar"}

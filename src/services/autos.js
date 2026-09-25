@@ -253,7 +253,8 @@ export async function getAutoById(id) {
  */
 export async function createAuto(carData) {
   if (!isConfigured) {
-    const newCar = { ...carData, id: uid(), fechaCreacion: today(), fechaActualizacion: today() };
+    const now = new Date().toISOString();
+    const newCar = { ...carData, id: uid(), fechaCreacion: now, fechaActualizacion: now };
     const cars = getLocalCars();
     saveLocalCars([newCar, ...cars]);
     return { data: newCar, error: null };
