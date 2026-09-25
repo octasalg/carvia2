@@ -53,13 +53,23 @@ export async function createAdminMetaFeedResponse({
   feedUrl.searchParams.set("token", token);
 
   if (url.searchParams.get("action") === "download") {
-    return createMetaVehicleFeedResponse({
+    const feed = await createMetaVehicleFeedResponse({
       requestUrl: feedUrl.href,
       format: "csv",
       env: { ...env, PUBLIC_BASE_URL: publicBaseUrl },
       fetchImpl,
       logger,
     });
+    if (feed.status !== 200) return feed;
+    return {
+      ...feed,
+      headers: {
+        ...feed.headers,
+        "Content-Disposition": 'attachment; filename="meta-vehicles.csv"',
+      },
+      // UTF-8 BOM: permite que Excel para Windows detecte acentos y ñ correctamente.
+      body: `\uFEFF${feed.body}`,
+    };
   }
 
   return jsonResponse(200, { csvUrl: feedUrl.href });

@@ -158,3 +158,27 @@ test("un administrador autenticado puede obtener la URL protegida", async () => 
   assert.equal(response.status, 200);
   assert.equal(JSON.parse(response.body).csvUrl, `${BASE_URL}/feeds/meta/vehicles.csv?token=secreto`);
 });
+
+test("la descarga administrativa incluye UTF-8 BOM para conservar acentos en Excel", async () => {
+  let requestNumber = 0;
+  const response = await createAdminMetaFeedResponse({
+    requestUrl: `${BASE_URL}/api/admin/meta-feed?action=download`,
+    authorization: "Bearer valid-session",
+    env: {
+      META_CATALOG_FEED_TOKEN: "secreto",
+      PUBLIC_BASE_URL: BASE_URL,
+      SUPABASE_URL: "https://database.example",
+      SUPABASE_ANON_KEY: "public-key",
+    },
+    fetchImpl: async () => {
+      requestNumber += 1;
+      return requestNumber === 1
+        ? { ok: true }
+        : { ok: true, json: async () => [vehicle] };
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.charCodeAt(0), 0xFEFF);
+  assert.match(response.body, /Automática|Certificado x Carvía|cómoda/);
+  assert.match(response.headers["Content-Disposition"], /^attachment;/);
+});
