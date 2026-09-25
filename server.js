@@ -1,3 +1,4 @@
+/* global process, Buffer */
 /* ============================================================
    CARVÍA — Servidor de producción (Node, sin dependencias)
    ------------------------------------------------------------
@@ -16,6 +17,7 @@ import { existsSync } from "node:fs";
 import { join, extname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
+import { createMetaVehicleFeedResponse } from "./server/metaVehicleFeed.js";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(ROOT, "dist");
@@ -199,6 +201,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== "GET" && req.method !== "HEAD") {
       res.writeHead(405, { Allow: "GET, HEAD" });
       return res.end();
+    }
+
+    const feedMatch = pathname.match(/^\/feeds\/meta\/vehicles\.(csv|xml)$/);
+    if (feedMatch) {
+      const feed = await createMetaVehicleFeedResponse({
+        requestUrl: req.url,
+        format: feedMatch[1],
+        env: { ...process.env, PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || origin },
+      });
+      res.writeHead(feed.status, feed.headers);
+      return res.end(req.method === "HEAD" ? undefined : feed.body);
     }
 
     // Ruta de archivo dentro de /dist (evita path traversal)

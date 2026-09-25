@@ -6,6 +6,7 @@
    ============================================================ */
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { trackMetaPageView } from "../meta/metaPixel";
 
 const GA_MEASUREMENT_ID = "G-FGLBJB9JBF";
 
@@ -13,17 +14,17 @@ export default function usePageTracking() {
   const location = useLocation();
 
   useEffect(() => {
-    if (typeof window.gtag !== "function") return;
+    if (typeof window.gtag === "function" && !location.pathname.startsWith("/auto/")) {
+      window.gtag("event", "page_view", {
+        page_path: location.pathname + location.search,
+        page_location: window.location.href,
+        page_title: document.title,
+        send_to: GA_MEASUREMENT_ID,
+      });
+    }
 
-    // El detalle de auto (/auto/:id) envía su propio page_view con el nombre del
-    // auto ya cargado, así que aquí lo omitimos para no mandar uno con título genérico.
-    if (location.pathname.startsWith("/auto/")) return;
-
-    window.gtag("event", "page_view", {
-      page_path: location.pathname + location.search,
-      page_location: window.location.href,
-      page_title: document.title,
-      send_to: GA_MEASUREMENT_ID,
-    });
+    // El HTML ya registra la primera carga; location.key evita duplicarla y
+    // permite registrar una sola PageView en cada navegación posterior de la SPA.
+    trackMetaPageView(location.key);
   }, [location]);
 }

@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/feeds/meta/vehicles.csv", "destination": "/api/feeds/meta/vehicles?format=csv" },
+    { "source": "/feeds/meta/vehicles.xml", "destination": "/api/feeds/meta/vehicles?format=xml" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

@@ -71,6 +71,9 @@ VITE_EMAILJS_SERVICE_ID=tu_service_id
 VITE_EMAILJS_TEMPLATE_ID=tu_template_id
 VITE_EMAILJS_PUBLIC_KEY=tu_public_key
 VITE_WHATSAPP_NUMBER=521XXXXXXXXXX
+VITE_META_PIXEL_ID=920694894141920
+META_CATALOG_FEED_TOKEN=un_valor_largo_y_aleatorio
+PUBLIC_BASE_URL=https://tudominio.com
 ```
 
 (Los nombres exactos están en `.env.example`.)
@@ -80,6 +83,8 @@ VITE_WHATSAPP_NUMBER=521XXXXXXXXXX
   **políticas RLS** de tu base de datos, no el ocultar la clave.
 - **NUNCA** pongas la `SUPABASE_SERVICE_ROLE_KEY` aquí: es secreta y, al ser una
   SPA, quedaría expuesta en el JavaScript del navegador. El proyecto no la usa.
+- `META_CATALOG_FEED_TOKEN` sí es secreto y sólo lo utiliza `server.js`; nunca debe
+  llevar el prefijo `VITE_`.
 
 ---
 

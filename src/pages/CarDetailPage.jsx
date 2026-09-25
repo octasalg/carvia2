@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   ChevronLeft, ChevronRight, Star, Car, Calendar, Gauge,
@@ -16,11 +16,13 @@ import { sendContactEmail } from "../lib/emailjs";
 import { saveContacto } from "../services/autos";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 import { hasMeaningfulValue } from "../utils/hasMeaningfulValue";
+import { trackMetaViewContent } from "../meta/metaPixel";
 import toast from "react-hot-toast";
 
 export default function CarDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,35 +31,38 @@ export default function CarDetailPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     window.scrollTo(0, 0);
-    loadCar();
-  }, [id]);
-
-  async function loadCar() {
-    setLoading(true);
-    setError(null);
-    const { data, error } = await getAutoById(id);
-    if (error || !data) {
-      setError(error || new Error("No encontrado"));
+    async function loadCar() {
+      setLoading(true);
+      setError(null);
+      const { data, error: loadError } = await getAutoById(id);
+      if (cancelled) return;
+      if (loadError || !data) {
+        setError(loadError || new Error("No encontrado"));
+        setLoading(false);
+        return;
+      }
+      setCar(data);
       setLoading(false);
-      return;
-    }
-    setCar(data);
-    setLoading(false);
+      trackMetaViewContent(data, location.key);
 
-    // Analytics (GA4): enviamos el page_view aquí, ya con el auto cargado, usando una
-    // ruta "virtual" legible (/auto/marca-modelo-version-anio) en lugar del id. Así el
-    // reporte estándar de "Páginas y pantallas" muestra el nombre del auto, no un id.
-    if (typeof window.gtag === "function") {
-      const nombre = `${data.marca} ${data.modelo} ${data.version} ${data.anio}`;
-      window.gtag("event", "page_view", {
-        page_path: `/auto/${slug(nombre)}`,
-        page_location: window.location.href,
-        page_title: `${nombre} | Carvía`,
-        send_to: "G-FGLBJB9JBF",
-      });
+      // Analytics (GA4): enviamos el page_view aquí, ya con el auto cargado, usando una
+      // ruta "virtual" legible (/auto/marca-modelo-version-anio) en lugar del id. Así el
+      // reporte estándar de "Páginas y pantallas" muestra el nombre del auto, no un id.
+      if (typeof window.gtag === "function") {
+        const nombre = `${data.marca} ${data.modelo} ${data.version} ${data.anio}`;
+        window.gtag("event", "page_view", {
+          page_path: `/auto/${slug(nombre)}`,
+          page_location: window.location.href,
+          page_title: `${nombre} | Carvía`,
+          send_to: "G-FGLBJB9JBF",
+        });
+      }
     }
-  }
+    loadCar();
+    return () => { cancelled = true; };
+  }, [id, location.key]);
 
   function openLightbox(index) {
     setLightboxIndex(index);
