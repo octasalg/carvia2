@@ -23,8 +23,10 @@ export default function usePageTracking() {
       });
     }
 
-    // El HTML ya registra la primera carga; location.key evita duplicarla y
-    // permite registrar una sola PageView en cada navegación posterior de la SPA.
-    trackMetaPageView(location.key);
+    // location.key evita duplicados de StrictMode y registra una PageView
+    // por cada navegación pública de la SPA.
+    if (!location.pathname.startsWith("/admin")) {
+      trackMetaPageView(location.key);
+    }
   }, [location]);
 }

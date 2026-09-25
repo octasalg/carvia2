@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { MessageCircle, Lock } from "lucide-react";
 import Logo from "./Logo";
 import { waLink } from "../data/seed";
+import { trackMetaContact } from "../meta/metaPixel";
 
 export default function Footer() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Footer() {
         <div className="footer-brand">
           <Logo size={28} />
           <p>Tu agencia de autos seminuevos premium. Confianza, tecnología y el mejor servicio en cada compra.</p>
-          <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer">
+          <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(null, "footer")}>
             <MessageCircle size={16} /> Cotiza por WhatsApp
           </a>
         </div>

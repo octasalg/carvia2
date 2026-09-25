@@ -19,6 +19,7 @@ import { SkeletonGrid } from "../components/SkeletonCard";
 import { getAutos } from "../services/autos";
 import { getHeroImages } from "../services/heroImages";
 import { BRANDS, TYPES, emptyFilters, img, waLink, mxn } from "../data/seed";
+import { trackMetaContact, trackMetaLead } from "../meta/metaPixel";
 
 import heroBg1 from "../assets/hero1.jpg";
 import heroBg2 from "../assets/hero2.jpg";
@@ -474,10 +475,17 @@ function Contact() {
     if (!form.nombre || !form.tel) return;
     setLoading(true);
     try {
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: form.auto, mensaje: form.msg }),
         saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: form.auto, mensaje: form.msg }),
       ]);
+      const delivered = results.some((result) => result.status === "fulfilled" && !result.value?.error);
+      if (delivered) {
+        trackMetaLead(
+          form.auto ? { content_name: form.auto } : {},
+          { name: form.nombre, phone: form.tel, email: form.correo },
+        );
+      }
       setSent(true);
       toast.success("¡Mensaje enviado correctamente!");
     } catch {
@@ -494,7 +502,7 @@ function Contact() {
           <h2 className="section-title">Visítanos o escríbenos</h2>
           <p className="section-sub">Estamos para asesorarte. Agenda tu cita o cotiza directo por WhatsApp.</p>
           <div className="contact-items">
-            <a className="contact-item" href={waLink(null)} target="_blank" rel="noreferrer">
+            <a className="contact-item" href={waLink(null)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(null, "home_contact_info")}>
               <MessageCircle size={18} /><div><strong>WhatsApp</strong><span>+52 614 401 6149</span></div>
             </a>
             <div className="contact-item"><span style={{ color: "var(--orange)" }}>📞</span><div><strong>Teléfono</strong><span>(614) 401 6149</span></div></div>
@@ -509,7 +517,7 @@ function Contact() {
               <div className="form-sent-icon"><Check size={32} /></div>
               <h3>¡Gracias, {form.nombre.split(" ")[0]}!</h3>
               <p>Recibimos tu mensaje. Un asesor te contactará muy pronto.</p>
-              <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer">
+              <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(null, "home_form_success")}>
                 <MessageCircle size={16} /> Continuar por WhatsApp
               </a>
             </div>
@@ -530,7 +538,7 @@ function Contact() {
                 <button className="btn btn-primary" onClick={submit} disabled={loading}>
                   {loading ? "Enviando…" : <>Enviar mensaje <ArrowRight size={16} /></>}
                 </button>
-                <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer">
+                <a className="btn btn-wa" href={waLink(null)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(null, "home_form")}>
                   <MessageCircle size={16} /> WhatsApp
                 </a>
               </div>

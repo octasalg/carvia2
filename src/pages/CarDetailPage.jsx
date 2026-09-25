@@ -16,7 +16,7 @@ import { sendContactEmail } from "../lib/emailjs";
 import { saveContacto } from "../services/autos";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 import { hasMeaningfulValue } from "../utils/hasMeaningfulValue";
-import { trackMetaViewContent } from "../meta/metaPixel";
+import { getVehicleParameters, trackMetaContact, trackMetaLead, trackMetaViewContent } from "../meta/metaPixel";
 import toast from "react-hot-toast";
 
 export default function CarDetailPage() {
@@ -245,7 +245,7 @@ export default function CarDetailPage() {
                 </div>
               )}
               <div className="detail-cta">
-                <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer">
+                <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(car, "vehicle_detail_primary")}>
                   <MessageCircle size={18} /> Cotizar por WhatsApp
                 </a>
                 <button className="btn btn-ghost btn-lg" onClick={() => document.getElementById("detail-contacto")?.scrollIntoView({ behavior: "smooth" })}>
@@ -315,10 +315,18 @@ function DetailContactForm({ car }) {
     if (!form.nombre || !form.tel) return;
     setLoading(true);
     try {
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
         saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
       ]);
+      const delivered = results.some((result) => result.status === "fulfilled" && !result.value?.error);
+      if (delivered) {
+        trackMetaLead(getVehicleParameters(car), {
+          name: form.nombre,
+          phone: form.tel,
+          email: form.correo,
+        });
+      }
       setSent(true);
       toast.success("¡Mensaje enviado!");
     } catch {
@@ -332,7 +340,7 @@ function DetailContactForm({ car }) {
       <div className="dform-copy">
         <h3>¿Te interesa este {car.marca}?</h3>
         <p>Déjanos tus datos y un asesor te contactará, o cotiza al instante por WhatsApp.</p>
-        <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer">
+        <a className="btn btn-wa btn-lg" href={waLink(car)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(car, "vehicle_detail_form")}>
           <MessageCircle size={18} /> Cotizar este auto
         </a>
       </div>

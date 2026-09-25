@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 import { createMetaVehicleFeedResponse } from "./server/metaVehicleFeed.js";
 import { createAdminMetaFeedResponse } from "./server/adminMetaFeed.js";
+import { createMetaConversionsResponse } from "./server/metaConversions.js";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(ROOT, "dist");
@@ -191,12 +192,41 @@ async function serveIndex(req, res, origin, pathname) {
   }, html, ".html");
 }
 
+async function readJsonBody(req, maxBytes = 32_768) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new Error("PAYLOAD_TOO_LARGE");
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const proto = (req.headers["x-forwarded-proto"] || "").split(",")[0].trim() || "http";
     const host = (req.headers["x-forwarded-host"] || req.headers.host || "localhost").split(",")[0].trim();
     const origin = `${proto}://${host}`;
     const { pathname } = new URL(req.url, origin);
+
+    if (pathname === "/api/meta/conversions") {
+      let body = "";
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(413, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end(JSON.stringify({ ok: false, error: "payload_too_large" }));
+      }
+      const conversion = await createMetaConversionsResponse({
+        method: req.method,
+        body,
+        headers: req.headers,
+        env: process.env,
+      });
+      res.writeHead(conversion.status, conversion.headers);
+      return res.end(conversion.body);
+    }
 
     // Sólo GET / HEAD
     if (req.method !== "GET" && req.method !== "HEAD") {

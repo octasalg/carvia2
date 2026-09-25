@@ -16,7 +16,7 @@
     gtag('config', 'G-FGLBJB9JBF', { send_page_view: false });
   </script>
 
-  <!-- Meta Pixel: PageView inicial. Las navegaciones SPA se registran desde React. -->
+  <!-- Meta Pixel. Los eventos se registran desde React para compartir event_id con CAPI. -->
   <script>
     (function () {
       var pixelId = "%VITE_META_PIXEL_ID%";
@@ -36,8 +36,6 @@
         s.parentNode.insertBefore(t, s);
       }(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
       fbq("init", pixelId);
-      fbq("track", "PageView");
-      window.__carviaMetaLastPageView = "default";
     }());
   </script>
 

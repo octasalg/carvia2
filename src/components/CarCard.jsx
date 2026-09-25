@@ -3,6 +3,7 @@ import { Gauge, Settings2, FileText, Star, Car, MessageCircle, Calendar } from "
 import Reveal from "./Reveal";
 import { mxn, km, waLink } from "../data/seed";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
+import { trackMetaContact } from "../meta/metaPixel";
 
 export default function CarCard({ car, delay = 0, showCertificationBanner = false }) {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ export default function CarCard({ car, delay = 0, showCertificationBanner = fals
           <button className="btn btn-dark" onClick={() => navigate(`/auto/${car.id}`)}>
             Ver detalles
           </button>
-          <a className="btn btn-wa" href={waLink(car)} target="_blank" rel="noreferrer">
+          <a className="btn btn-wa" href={waLink(car)} target="_blank" rel="noreferrer" onClick={() => trackMetaContact(car, "catalog_card")}>
             <MessageCircle size={16} /> WhatsApp
           </a>
         </div>

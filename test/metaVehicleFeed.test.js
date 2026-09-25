@@ -13,6 +13,7 @@ import {
 import { trackMetaViewContent } from "../src/meta/metaPixel.js";
 import { createMetaVehicleFeedResponse } from "../server/metaVehicleFeed.js";
 import { createAdminMetaFeedResponse } from "../server/adminMetaFeed.js";
+import { createMetaConversionsResponse } from "../server/metaConversions.js";
 
 const BASE_URL = "https://carvia.example";
 const vehicle = {
@@ -128,6 +129,70 @@ test("Pixel ViewContent usa exactamente el mismo ID del feed y no duplica la vis
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0][2].content_ids, [getMetaVehicleId(vehicle)]);
   delete globalThis.window;
+});
+
+test("Pixel y CAPI comparten event_id y ViewContent incluye los datos del vehículo", () => {
+  const pixelCalls = [];
+  const serverCalls = [];
+  globalThis.window = {
+    fbq: (...args) => pixelCalls.push(args),
+    fetch: (_url, options) => {
+      serverCalls.push(JSON.parse(options.body));
+      return Promise.resolve({ ok: true });
+    },
+    history: { state: { key: "visit-capi" } },
+    location: { pathname: `/auto/${vehicle.id}`, href: `${BASE_URL}/auto/${vehicle.id}` },
+  };
+
+  assert.equal(trackMetaViewContent(vehicle, "visit-capi"), true);
+  assert.equal(pixelCalls[0][3].eventID, serverCalls[0].eventId);
+  assert.deepEqual(serverCalls[0].customData.content_ids, [vehicle.id]);
+  assert.equal(serverCalls[0].customData.make, "Mazda");
+  assert.equal(serverCalls[0].customData.model, "CX-5");
+  assert.equal(serverCalls[0].customData.year, 2024);
+  assert.equal(serverCalls[0].customData.value, 629900);
+  assert.equal(serverCalls[0].customData.currency, "MXN");
+  delete globalThis.window;
+});
+
+test("CAPI envía el evento a Meta, conserva event_id y cifra los datos del lead", async () => {
+  let graphRequest;
+  const capiResponse = await createMetaConversionsResponse({
+    body: {
+      eventName: "Lead",
+      eventId: "carvia-lead-test-1",
+      eventSourceUrl: `${BASE_URL}/auto/${vehicle.id}`,
+      customData: { content_ids: [vehicle.id], value: 629900, currency: "MXN" },
+      userData: { name: "María López", email: "MARIA@example.com", phone: "614 123 4567" },
+    },
+    headers: {
+      "user-agent": "Test browser",
+      "x-forwarded-for": "203.0.113.8",
+      cookie: "_fbp=fb.1.123.456; _fbc=fb.1.123.click",
+    },
+    env: {
+      META_PIXEL_ID: "920694894141920",
+      META_CONVERSIONS_ACCESS_TOKEN: "private-token",
+      META_TEST_EVENT_CODE: "TEST123",
+    },
+    fetchImpl: async (url, options) => {
+      graphRequest = { url, options, body: JSON.parse(options.body) };
+      return { ok: true, json: async () => ({ events_received: 1 }) };
+    },
+  });
+
+  assert.equal(capiResponse.status, 200);
+  assert.match(graphRequest.url, /920694894141920\/events$/);
+  assert.equal(graphRequest.options.headers.Authorization, "Bearer private-token");
+  assert.equal(graphRequest.body.test_event_code, "TEST123");
+  const event = graphRequest.body.data[0];
+  assert.equal(event.event_id, "carvia-lead-test-1");
+  assert.equal(event.event_name, "Lead");
+  assert.equal(event.action_source, "website");
+  assert.equal(event.custom_data.currency, "MXN");
+  assert.equal(event.user_data.client_ip_address, "203.0.113.8");
+  assert.equal(event.user_data.em[0].length, 64);
+  assert.doesNotMatch(JSON.stringify(event.user_data), /MARIA|example\.com|614 123 4567/i);
 });
 
 test("el endpoint administrativo no revela la URL sin una sesión válida", async () => {
