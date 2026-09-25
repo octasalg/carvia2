@@ -43,7 +43,9 @@ test("mapea un vehículo al formato Vehicle Offer", () => {
   const { row } = mapVehicleToMetaFeed(vehicle, { publicBaseUrl: BASE_URL });
   assert.equal(row.title, "2024 Mazda CX-5 Signature");
   assert.equal(row.availability, "AVAILABLE");
-  assert.equal(row.price, "629900 MXN");
+  assert.equal(row.price, "629900.00 MXN");
+  assert.equal(row.amount_price, "629900.00 MXN");
+  assert.equal(row.offer_type, "cash");
   assert.equal(row.vehicle_offer_id, vehicle.id);
   assert.equal(row.make, "Mazda");
   assert.equal(row.transmission, "AUTOMATIC");

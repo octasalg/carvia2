@@ -153,7 +153,7 @@ function buildDescription(vehicle, title) {
 
 function formatPrice(input) {
   const amount = Number(input);
-  return Number.isFinite(amount) && amount > 0 ? `${Math.round(amount)} MXN` : "";
+  return Number.isFinite(amount) && amount > 0 ? `${amount.toFixed(2)} MXN` : "";
 }
 
 export function mapVehicleToMetaFeed(vehicle, { publicBaseUrl } = {}) {
@@ -162,11 +162,12 @@ export function mapVehicleToMetaFeed(vehicle, { publicBaseUrl } = {}) {
   const images = getVehiclePublicImageUrls(vehicle, publicBaseUrl);
   const id = getMetaVehicleId(vehicle);
   const detailUrl = getVehicleDetailUrl(vehicle, publicBaseUrl);
+  const publishedPrice = formatPrice(value(vehicle, "precio", "precio"));
 
   Object.assign(row, {
     title,
     availability: getMetaAvailability(vehicle),
-    price: formatPrice(value(vehicle, "precio", "precio")),
+    price: publishedPrice,
     "image[0].url": images[0] || "",
     "image[0].tag[0]": images[0] ? "EXTERIOR" : "",
     vehicle_offer_id: id,
@@ -178,6 +179,8 @@ export function mapVehicleToMetaFeed(vehicle, { publicBaseUrl } = {}) {
     custom_number_0: Number.isFinite(Number(value(vehicle, "kilometraje", "kilometraje")))
       ? String(Math.max(0, Math.round(Number(value(vehicle, "kilometraje", "kilometraje")))))
       : "",
+    amount_price: publishedPrice,
+    offer_type: publishedPrice ? "cash" : "",
     make: cleanText(value(vehicle, "marca", "marca")),
     model: cleanText(value(vehicle, "modelo", "modelo")),
     year: cleanText(value(vehicle, "anio", "anio")),

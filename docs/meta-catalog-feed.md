@@ -48,7 +48,9 @@ Después de agregar o modificar una variable de Vite se necesita volver a compil
 | `vehicle_offer_id` | `autos.id` (UUID permanente) |
 | `title` | año + marca + modelo + versión |
 | `availability` | `AVAILABLE` cuando está visible, no vendido y no próximamente |
-| `price` | `precio` + `MXN` |
+| `price` | `precio` con dos decimales + `MXN` |
+| `amount_price` | mismo precio publicado; importe de la oferta de contado |
+| `offer_type` | `cash` cuando existe un precio publicado |
 | `offer_description` | `descripcion`; si falta, resumen con datos existentes |
 | `url` | `PUBLIC_BASE_URL/auto/{autos.id}` |
 | `image[0].url` | primera URL pública válida de `imagenes` |
@@ -70,7 +72,7 @@ Después de agregar o modificar una variable de Vite se necesita volver a compil
 
 ## Campos vacíos
 
-Se dejan vacíos los campos para los que la base no contiene información confiable: disclaimer legal y su URL, videos, app links, cashback, fechas de vigencia, códigos ComScore, margen, combustible, tracción, generación, tapicería, prioridades y todos los campos estructurados de financiamiento (`amount_price`, `amount_percentage`, `downpayment`, `offer_type`, `term_length` y sus calificadores).
+Se dejan vacíos los campos para los que la base no contiene información confiable: disclaimer legal y su URL, videos, app links, cashback, fechas de vigencia, códigos ComScore, margen, combustible, tracción, generación, tapicería, prioridades y los campos de financiamiento (`amount_percentage`, `downpayment`, `term_length` y sus calificadores). `amount_price` y `offer_type` sí se llenan como oferta de contado utilizando exactamente el precio publicado del vehículo.
 
 Aunque la web calcula una mensualidad estimada, ese cálculo no se guarda como una oferta contractual en la base. Por esa razón no se exporta como financiamiento a Meta.
 
