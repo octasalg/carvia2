@@ -5,6 +5,7 @@ import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, Star, Car,
   LogOut, LayoutDashboard, X, Upload, ArrowRight, Images, Save,
   ClipboardPaste, Wand2, ChevronDown, Printer,
+  Copy, Download,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
@@ -53,7 +54,7 @@ function generarIdentificador(car) {
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, session } = useAuth();
   const [cars, setCars] = useState([]);
   const [classificationOptions, setClassificationOptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +63,7 @@ export default function AdminDashboardPage() {
   const [editing, setEditing] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const [section, setSection] = useState("inventory"); // inventory | hero
+  const [metaFeedAction, setMetaFeedAction] = useState("");
 
   useEffect(() => {
     loadCars();
@@ -100,6 +102,53 @@ export default function AdminDashboardPage() {
   async function handleLogout() {
     await logout();
     navigate("/", { replace: true });
+  }
+
+  async function requestAdminMetaFeed(action) {
+    if (!session?.access_token) throw new Error("Tu sesión expiró. Inicia sesión nuevamente.");
+    const response = await fetch(`/api/admin/meta-feed?action=${action}`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || "No se pudo obtener el catálogo de Meta");
+    }
+    return response;
+  }
+
+  async function copyMetaFeedUrl() {
+    setMetaFeedAction("copy");
+    try {
+      const response = await requestAdminMetaFeed("url");
+      const { csvUrl } = await response.json();
+      await navigator.clipboard.writeText(csvUrl);
+      toast.success("URL del CSV copiada");
+    } catch (error) {
+      toast.error(error.message || "No se pudo copiar la URL");
+    } finally {
+      setMetaFeedAction("");
+    }
+  }
+
+  async function downloadMetaFeed() {
+    setMetaFeedAction("download");
+    try {
+      const response = await requestAdminMetaFeed("download");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "meta-vehicles.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Catálogo CSV descargado");
+    } catch (error) {
+      toast.error(error.message || "No se pudo descargar el catálogo");
+    } finally {
+      setMetaFeedAction("");
+    }
   }
 
   const filtered = cars.filter((c) => {
@@ -195,9 +244,27 @@ export default function AdminDashboardPage() {
                   <h1>Gestión de inventario</h1>
                   <p>Administra los autos del catálogo público.</p>
                 </div>
-                <button className="btn btn-primary" onClick={() => setEditing({})}>
-                  <Plus size={16} /> Nuevo auto
-                </button>
+                <div className="admin-top-actions">
+                  <button
+                    className="btn btn-ghost"
+                    onClick={copyMetaFeedUrl}
+                    disabled={Boolean(metaFeedAction)}
+                    title="Copiar la URL protegida para Meta Commerce Manager"
+                  >
+                    <Copy size={15} /> {metaFeedAction === "copy" ? "Copiando…" : "Copiar URL CSV"}
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={downloadMetaFeed}
+                    disabled={Boolean(metaFeedAction)}
+                    title="Descargar una copia actualizada del catálogo de Meta"
+                  >
+                    <Download size={15} /> {metaFeedAction === "download" ? "Descargando…" : "Descargar catálogo"}
+                  </button>
+                  <button className="btn btn-primary" onClick={() => setEditing({})}>
+                    <Plus size={16} /> Nuevo auto
+                  </button>
+                </div>
               </div>
 
               {/* Stats */}

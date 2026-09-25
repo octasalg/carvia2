@@ -18,6 +18,7 @@ import { join, extname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
 import { createMetaVehicleFeedResponse } from "./server/metaVehicleFeed.js";
+import { createAdminMetaFeedResponse } from "./server/adminMetaFeed.js";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(ROOT, "dist");
@@ -212,6 +213,16 @@ const server = http.createServer(async (req, res) => {
       });
       res.writeHead(feed.status, feed.headers);
       return res.end(req.method === "HEAD" ? undefined : feed.body);
+    }
+
+    if (pathname === "/api/admin/meta-feed") {
+      const adminFeed = await createAdminMetaFeedResponse({
+        requestUrl: `${origin}${req.url}`,
+        authorization: req.headers.authorization,
+        env: { ...process.env, PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || origin },
+      });
+      res.writeHead(adminFeed.status, adminFeed.headers);
+      return res.end(req.method === "HEAD" ? undefined : adminFeed.body);
     }
 
     // Ruta de archivo dentro de /dist (evita path traversal)

@@ -12,6 +12,7 @@ import {
 } from "../src/meta/vehicleFeed.js";
 import { trackMetaViewContent } from "../src/meta/metaPixel.js";
 import { createMetaVehicleFeedResponse } from "../server/metaVehicleFeed.js";
+import { createAdminMetaFeedResponse } from "../server/adminMetaFeed.js";
 
 const BASE_URL = "https://carvia.example";
 const vehicle = {
@@ -125,4 +126,35 @@ test("Pixel ViewContent usa exactamente el mismo ID del feed y no duplica la vis
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0][2].content_ids, [getMetaVehicleId(vehicle)]);
   delete globalThis.window;
+});
+
+test("el endpoint administrativo no revela la URL sin una sesión válida", async () => {
+  const response = await createAdminMetaFeedResponse({
+    requestUrl: `${BASE_URL}/api/admin/meta-feed?action=url`,
+    authorization: "",
+    env: {
+      META_CATALOG_FEED_TOKEN: "secreto",
+      PUBLIC_BASE_URL: BASE_URL,
+      SUPABASE_URL: "https://database.example",
+      SUPABASE_ANON_KEY: "public-key",
+    },
+  });
+  assert.equal(response.status, 401);
+  assert.doesNotMatch(response.body, /secreto/);
+});
+
+test("un administrador autenticado puede obtener la URL protegida", async () => {
+  const response = await createAdminMetaFeedResponse({
+    requestUrl: `${BASE_URL}/api/admin/meta-feed?action=url`,
+    authorization: "Bearer valid-session",
+    env: {
+      META_CATALOG_FEED_TOKEN: "secreto",
+      PUBLIC_BASE_URL: BASE_URL,
+      SUPABASE_URL: "https://database.example",
+      SUPABASE_ANON_KEY: "public-key",
+    },
+    fetchImpl: async () => ({ ok: true }),
+  });
+  assert.equal(response.status, 200);
+  assert.equal(JSON.parse(response.body).csvUrl, `${BASE_URL}/feeds/meta/vehicles.csv?token=secreto`);
 });
