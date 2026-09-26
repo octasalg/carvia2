@@ -238,10 +238,10 @@ export default function AdminDashboardPage() {
               </button>
             )}
             <button className="admin-nav" onClick={() => navigate("/")}><Car size={18} /> Ver sitio</button>
+            <button className="admin-logout" onClick={handleLogout}>
+              <LogOut size={16} /> Cerrar sesión
+            </button>
           </nav>
-          <button className="admin-logout" onClick={handleLogout}>
-            <LogOut size={16} /> Cerrar sesión
-          </button>
         </aside>
 
         {/* Contenido principal */}

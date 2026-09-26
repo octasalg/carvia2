@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="diego.olivas"
+              placeholder="usuario"
               onKeyDown={onKey}
               autoComplete="username"
             />
