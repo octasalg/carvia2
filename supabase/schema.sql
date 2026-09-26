@@ -37,6 +37,11 @@ create table if not exists public.autos (
   proximamente    boolean default false,
   vendido         boolean default false,
   precio_especial boolean default false,
+  garantia_agencia                boolean not null default false,
+  garantia_ultimo_servicio        date,
+  garantia_proximo_servicio_fecha date,
+  garantia_proximo_servicio_km    integer,
+  garantia_intervalo_servicio     text,
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
 );
@@ -109,6 +114,18 @@ alter table public.autos
   add column if not exists potencia integer;
 alter table public.autos
   add column if not exists rendimiento numeric;
+
+-- Garantía de agencia (ver supabase/add_agency_warranty.sql). Idempotente.
+alter table public.autos
+  add column if not exists garantia_agencia boolean not null default false;
+alter table public.autos
+  add column if not exists garantia_ultimo_servicio date;
+alter table public.autos
+  add column if not exists garantia_proximo_servicio_fecha date;
+alter table public.autos
+  add column if not exists garantia_proximo_servicio_km integer;
+alter table public.autos
+  add column if not exists garantia_intervalo_servicio text;
 
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS)

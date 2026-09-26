@@ -5,6 +5,7 @@
 import { supabase, isConfigured } from "../lib/supabase";
 import { SEED, uid, today } from "../data/seed";
 import { DEFAULT_VEHICLE_CLASSIFICATIONS } from "../config/vehicleClassifications";
+import { toDateInputValue, withNormalizedWarranty } from "../utils/agencyWarranty";
 
 const PAGE_SIZE = 12;
 
@@ -23,6 +24,11 @@ function fromDB(row) {
     colorExterior: row.color_exterior,
     colorInterior: row.color_interior,
     coverPosition: row.cover_position,
+    garantiaAgencia: row.garantia_agencia === true,
+    garantiaUltimoServicio: toDateInputValue(row.garantia_ultimo_servicio) || null,
+    garantiaProximoServicioFecha: toDateInputValue(row.garantia_proximo_servicio_fecha) || null,
+    garantiaProximoServicioKm: row.garantia_proximo_servicio_km ?? null,
+    garantiaIntervaloServicio: row.garantia_intervalo_servicio ?? null,
     fechaCreacion: row.created_at,
     fechaActualizacion: row.updated_at,
     ...(hasInternalControl
@@ -34,6 +40,15 @@ function fromDB(row) {
   };
 }
 
+/* Campos de garantía de agencia: app (camelCase) ↔ DB (snake_case). */
+const WARRANTY_DB_COLUMNS = {
+  garantiaAgencia: "garantia_agencia",
+  garantiaUltimoServicio: "garantia_ultimo_servicio",
+  garantiaProximoServicioFecha: "garantia_proximo_servicio_fecha",
+  garantiaProximoServicioKm: "garantia_proximo_servicio_km",
+  garantiaIntervaloServicio: "garantia_intervalo_servicio",
+};
+
 function toDB(car) {
   const rest = { ...car };
   const colorExterior = rest.colorExterior;
@@ -42,6 +57,14 @@ function toDB(car) {
   const colorExteriorDB = rest.color_exterior;
   const colorInteriorDB = rest.color_interior;
   const coverPositionDB = rest.cover_position;
+
+  const warranty = {};
+  Object.entries(WARRANTY_DB_COLUMNS).forEach(([appKey, dbKey]) => {
+    const value = rest[appKey] ?? rest[dbKey];
+    if (value !== undefined) warranty[dbKey] = value;
+    delete rest[appKey];
+    delete rest[dbKey];
+  });
 
   [
     "colorExterior", "colorInterior", "coverPosition", "clasificacionInterna",
@@ -52,6 +75,7 @@ function toDB(car) {
 
   return {
     ...rest,
+    ...warranty,
     color_exterior: colorExterior ?? colorExteriorDB,
     color_interior: colorInterior ?? colorInteriorDB,
     cover_position: coverPosition ?? coverPositionDB,
@@ -251,7 +275,8 @@ export async function getAutoById(id) {
 /**
  * Crea un nuevo auto.
  */
-export async function createAuto(carData) {
+export async function createAuto(car) {
+  const carData = withNormalizedWarranty(car);
   if (!isConfigured) {
     const now = new Date().toISOString();
     const newCar = { ...carData, id: uid(), fechaCreacion: now, fechaActualizacion: now };
@@ -285,7 +310,8 @@ export async function createAuto(carData) {
 /**
  * Actualiza un auto existente.
  */
-export async function updateAuto(id, carData) {
+export async function updateAuto(id, car) {
+  const carData = withNormalizedWarranty(car);
   if (!isConfigured) {
     const cars = getLocalCars().map((c) =>
       c.id === id ? { ...c, ...carData, fechaActualizacion: today() } : c

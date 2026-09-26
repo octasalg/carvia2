@@ -22,6 +22,7 @@ import {
 import { BRANDS, TRANSMISSIONS, TYPES, mxn, km } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
+import { isValidDateInput, warrantyFormState } from "../utils/agencyWarranty";
 import toast from "react-hot-toast";
 
 const ADMIN_DATE_FORMATTER = new Intl.DateTimeFormat("es-MX", {
@@ -647,8 +648,9 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
     clasificacionInternaId: "", clasificacionInterna: "",
     imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false, precio_especial: false,
+    ...warrantyFormState(),
   };
-  const [f, setF] = useState({ ...blank, ...initial });
+  const [f, setF] = useState({ ...blank, ...initial, ...warrantyFormState(initial) });
   const [equipInput, setEquipInput] = useState((initial.equipamiento || []).join(", "));
   const [imageUrls, setImageUrls] = useState(initial.imagenes || []);
   const [useUploader, setUseUploader] = useState(false);
@@ -724,11 +726,38 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  /* Al desactivar la garantía se limpian los campos para no conservar datos vencidos. */
+  function toggleWarranty(e) {
+    const garantiaAgencia = e.target.checked;
+    setF((current) => ({
+      ...current,
+      ...warrantyFormState(garantiaAgencia ? current : {}),
+      garantiaAgencia,
+    }));
+  }
+
   function submit() {
     if (!f.marca || !f.modelo) { toast.error("Marca y modelo son requeridos"); return; }
     if (!classificationOptions.some((option) => option.id === f.clasificacionInternaId)) {
       toast.error("Selecciona una clasificación interna");
       return;
+    }
+    if (f.garantiaAgencia) {
+      if (f.garantiaUltimoServicio && !isValidDateInput(f.garantiaUltimoServicio)) {
+        toast.error("La fecha del último servicio no es válida");
+        return;
+      }
+      if (f.garantiaProximoServicioFecha && !isValidDateInput(f.garantiaProximoServicioFecha)) {
+        toast.error("La fecha del próximo servicio no es válida");
+        return;
+      }
+      if (f.garantiaProximoServicioKm !== "") {
+        const nextMileage = Number(f.garantiaProximoServicioKm);
+        if (!Number.isFinite(nextMileage) || nextMileage < 0) {
+          toast.error("El kilometraje del próximo servicio debe ser 0 o mayor");
+          return;
+        }
+      }
     }
     const imgs = useUploader
       ? imageUrls
@@ -873,6 +902,54 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
           </div>
           <div className="field"><label>Equipamiento (separado por comas)</label>
             <textarea rows={2} value={equipInput} onChange={(e) => setEquipInput(e.target.value)} placeholder="Quemacocos, Cámara de reversa, CarPlay…" />
+          </div>
+
+          {/* Garantía de agencia */}
+          <div className="form-section">
+            <div className="form-section-head">
+              <h3 className="form-section-title"><ShieldCheck size={14} /> Garantía de agencia</h3>
+              <label className="switch">
+                <input type="checkbox" checked={f.garantiaAgencia} onChange={toggleWarranty} />
+                <span className="switch-track" />
+                <span className="switch-label">¿Conserva garantía de agencia?</span>
+              </label>
+            </div>
+            {f.garantiaAgencia && (
+              <div className="form-grid form-section-grid">
+                <div className="field">
+                  <label>Último servicio</label>
+                  <input type="date" value={f.garantiaUltimoServicio} onChange={set("garantiaUltimoServicio")} />
+                </div>
+                <div className="field">
+                  <label>Fecha del próximo servicio</label>
+                  <input type="date" value={f.garantiaProximoServicioFecha} onChange={set("garantiaProximoServicioFecha")} />
+                </div>
+                <div className="field">
+                  <label>Kilometraje del próximo servicio</label>
+                  <div className="input-with-unit">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      value={f.garantiaProximoServicioKm}
+                      onChange={set("garantiaProximoServicioKm")}
+                      placeholder="60000"
+                    />
+                    <span className="input-unit">km</span>
+                  </div>
+                  <span className="field-hint">Sólo valores positivos.</span>
+                </div>
+                <div className="field field-wide">
+                  <label>Cada cuándo se realizan los servicios</label>
+                  <input
+                    value={f.garantiaIntervaloServicio}
+                    onChange={set("garantiaIntervaloServicio")}
+                    placeholder="Ej. Cada 10,000 km o 12 meses"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Imágenes: toggle entre subida y URLs */}

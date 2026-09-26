@@ -240,7 +240,7 @@ export default function HomePage() {
             <>
               {/* Desktop: grid */}
               <div className="cards-grid featured-grid-desktop">
-                {featured.map((c, i) => <CarCard key={c.id} car={c} delay={i * 90} />)}
+                {featured.map((c, i) => <CarCard key={c.id} car={c} delay={i * 90} showCertificationBanner />)}
               </div>
               {/* Mobile: slider */}
               <div
@@ -254,7 +254,7 @@ export default function HomePage() {
                 >
                   {featured.map((c) => (
                     <div key={c.id} className="featured-slide">
-                      <CarCard car={c} />
+                      <CarCard car={c} showCertificationBanner />
                     </div>
                   ))}
                 </div>
