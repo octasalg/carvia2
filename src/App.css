@@ -980,3 +980,22 @@ img { display: block; max-width: 100%; }
   .focal-editors { grid-template-columns: 1fr; }
   .focal-preview { max-width: 240px; }
 }
+
+/* ============================================================
+   ADMINISTRACIÓN DE USUARIOS
+   ============================================================ */
+.user-create-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px; margin-bottom: 24px; }
+.user-create-card h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; margin-bottom: 16px; }
+.user-create-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 14px; align-items: end; }
+.user-create-grid .btn { min-height: 39px; white-space: nowrap; }
+.user-create-card .field-hint { display: block; margin-top: 12px; color: var(--muted); font-size: 12px; }
+.user-table .atable-head.user-row, .user-table .atable-row.user-row {
+  grid-template-columns: 1.1fr 1.4fr .9fr 1.1fr 1fr; }
+.user-table .tag { display: inline-flex; align-items: center; gap: 5px; margin-right: 6px; }
+@media (max-width: 900px) {
+  .user-create-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .user-table .atable-row.user-row { grid-template-columns: 1fr; gap: 8px; }
+}

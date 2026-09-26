@@ -5,7 +5,7 @@ import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, Star, Car,
   LogOut, LayoutDashboard, X, Upload, ArrowRight, Images, Save,
   ClipboardPaste, Wand2, ChevronDown, Printer,
-  Copy, Download,
+  Copy, Download, Users, UserPlus, KeyRound, ShieldCheck,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
@@ -16,6 +16,9 @@ import {
   getVehicleClassificationOptions, createVehicleClassificationOption,
 } from "../services/autos";
 import { getHeroImages, saveHeroImages } from "../services/heroImages";
+import {
+  listAdminUsers, createAdminUser, setAdminUserActive, resetAdminUserPassword,
+} from "../services/adminUsers";
 import { BRANDS, TRANSMISSIONS, TYPES, mxn, km } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
@@ -54,7 +57,7 @@ function generarIdentificador(car) {
 
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { logout, session } = useAuth();
+  const { logout, session, isSuperadmin } = useAuth();
   const [cars, setCars] = useState([]);
   const [classificationOptions, setClassificationOptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,6 +229,14 @@ export default function AdminDashboardPage() {
             >
               <Images size={18} /> Fotos del Hero
             </button>
+            {isSuperadmin && (
+              <button
+                className={`admin-nav ${section === "users" ? "active" : ""}`}
+                onClick={() => setSection("users")}
+              >
+                <Users size={18} /> Administración de usuarios
+              </button>
+            )}
             <button className="admin-nav" onClick={() => navigate("/")}><Car size={18} /> Ver sitio</button>
           </nav>
           <button className="admin-logout" onClick={handleLogout}>
@@ -237,6 +248,10 @@ export default function AdminDashboardPage() {
         <main className="admin-main">
           {section === "hero" ? (
             <HeroSection />
+          ) : section === "users" ? (
+            isSuperadmin ? <UsersSection /> : (
+              <div className="atable-empty">No tienes permiso para ver esta sección.</div>
+            )
           ) : (
             <>
               <div className="admin-top">
@@ -443,6 +458,179 @@ function HeroSection() {
             value={urls}
             onChange={setUrls}
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   SECCIÓN: ADMINISTRACIÓN DE USUARIOS (solo superadmin)
+   ============================================================ */
+function UsersSection() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [busyId, setBusyId] = useState("");
+  const [form, setForm] = useState({ username: "", fullName: "", password: "" });
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    setLoading(true);
+    try {
+      setUsers(await listAdminUsers());
+    } catch (error) {
+      toast.error(error.message || "No se pudo cargar la lista de usuarios");
+    }
+    setLoading(false);
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    const username = form.username.trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+      toast.error("Usuario inválido: 3-40 caracteres (minúsculas, números, . _ -)");
+      return;
+    }
+    if (form.fullName.trim().length < 2) { toast.error("Escribe el nombre completo"); return; }
+    if (form.password.length < 8) { toast.error("La contraseña inicial debe tener al menos 8 caracteres"); return; }
+    setCreating(true);
+    try {
+      await createAdminUser({ username, fullName: form.fullName.trim(), password: form.password });
+      toast.success(`Usuario ${username} creado`);
+      setForm({ username: "", fullName: "", password: "" });
+      await load();
+    } catch (error) {
+      toast.error(error.message || "No se pudo crear el usuario");
+    }
+    setCreating(false);
+  }
+
+  async function toggleActive(user) {
+    setBusyId(user.id);
+    try {
+      await setAdminUserActive(user.id, !user.active);
+      toast.success(user.active ? "Usuario desactivado" : "Usuario activado");
+      await load();
+    } catch (error) {
+      toast.error(error.message || "No se pudo actualizar el estado");
+    }
+    setBusyId("");
+  }
+
+  async function resetPassword(user) {
+    const password = window.prompt(`Nueva contraseña para ${user.username} (mínimo 8 caracteres):`);
+    if (password == null) return;
+    if (password.length < 8) { toast.error("La contraseña debe tener al menos 8 caracteres"); return; }
+    setBusyId(user.id);
+    try {
+      await resetAdminUserPassword(user.id, password);
+      toast.success("Contraseña restablecida");
+    } catch (error) {
+      toast.error(error.message || "No se pudo restablecer la contraseña");
+    }
+    setBusyId("");
+  }
+
+  return (
+    <div>
+      <div className="admin-top">
+        <div>
+          <h1>Administración de usuarios</h1>
+          <p>Crea y gestiona las cuentas que pueden acceder al panel administrativo.</p>
+        </div>
+      </div>
+
+      {/* Crear usuario */}
+      <form className="user-create-card" onSubmit={handleCreate}>
+        <h3><UserPlus size={16} /> Crear nuevo usuario</h3>
+        <div className="user-create-grid">
+          <div className="field">
+            <label>Nombre de usuario</label>
+            <input
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              placeholder="nombre.apellido"
+              autoComplete="off"
+            />
+          </div>
+          <div className="field">
+            <label>Nombre completo</label>
+            <input
+              value={form.fullName}
+              onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+              placeholder="Nombre Apellido"
+              autoComplete="off"
+            />
+          </div>
+          <div className="field">
+            <label>Contraseña inicial</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder="mínimo 8 caracteres"
+              autoComplete="new-password"
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={creating}>
+            {creating ? "Creando…" : <><UserPlus size={15} /> Crear usuario</>}
+          </button>
+        </div>
+        <span className="field-hint">Los usuarios nuevos reciben el rol <strong>admin</strong>: pueden usar el portal pero no administrar usuarios.</span>
+      </form>
+
+      {/* Lista de usuarios */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 40 }}><div className="spinner" /></div>
+      ) : (
+        <div className="admin-table user-table">
+          <div className="atable-head user-row">
+            <span>Usuario</span><span>Nombre</span><span>Rol</span><span>Estado</span><span>Acciones</span>
+          </div>
+          {users.length === 0 && <div className="atable-empty">No hay usuarios.</div>}
+          {users.map((u) => (
+            <div className="atable-row user-row" key={u.id}>
+              <div><strong>{u.username}</strong></div>
+              <div>{u.full_name || "—"}</div>
+              <div>
+                <span className={`tag ${u.role === "superadmin" ? "tag-star" : "tag-internal"}`}>
+                  {u.role === "superadmin" ? <><ShieldCheck size={11} /> superadmin</> : "admin"}
+                </span>
+              </div>
+              <div>
+                <span className={`tag ${u.active ? "tag-on" : "tag-off"}`}>{u.active ? "Activo" : "Inactivo"}</span>
+                {u.protected && <span className="tag tag-internal" title="Cuenta fundadora protegida">Protegida</span>}
+              </div>
+              <div className="ar-actions">
+                {u.protected ? (
+                  <span className="field-hint">Sin acciones</span>
+                ) : (
+                  <>
+                    <button
+                      className="iconbtn"
+                      title="Restablecer contraseña"
+                      disabled={busyId === u.id}
+                      onClick={() => resetPassword(u)}
+                    >
+                      <KeyRound size={16} />
+                    </button>
+                    <button
+                      className={`iconbtn ${u.active ? "" : "on"}`}
+                      title={u.active ? "Desactivar" : "Activar"}
+                      disabled={busyId === u.id}
+                      onClick={() => toggleActive(u)}
+                    >
+                      {u.active ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

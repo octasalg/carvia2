@@ -20,6 +20,7 @@ import zlib from "node:zlib";
 import { createMetaVehicleFeedResponse } from "./server/metaVehicleFeed.js";
 import { createAdminMetaFeedResponse } from "./server/adminMetaFeed.js";
 import { createMetaConversionsResponse } from "./server/metaConversions.js";
+import { createAdminUsersResponse } from "./server/adminUsers.js";
 
 const ROOT = fileURLToPath(new URL(".", import.meta.url));
 const DIST = join(ROOT, "dist");
@@ -226,6 +227,27 @@ const server = http.createServer(async (req, res) => {
       });
       res.writeHead(conversion.status, conversion.headers);
       return res.end(conversion.body);
+    }
+
+    if (pathname === "/api/admin/users") {
+      let body = "";
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        try {
+          body = await readJsonBody(req);
+        } catch {
+          res.writeHead(413, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+          return res.end(JSON.stringify({ error: "payload_too_large" }));
+        }
+      }
+      const usersResponse = await createAdminUsersResponse({
+        method: req.method,
+        requestUrl: `${origin}${req.url}`,
+        authorization: req.headers.authorization,
+        body,
+        env: process.env,
+      });
+      res.writeHead(usersResponse.status, usersResponse.headers);
+      return res.end(usersResponse.body);
     }
 
     // Sólo GET / HEAD

@@ -10,7 +10,7 @@ import { isConfigured as supabaseConfigured } from "../lib/supabase";
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { login, isAuthenticated, loading } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -23,11 +23,11 @@ export default function AdminLoginPage() {
   }, [isAuthenticated, loading, navigate]);
 
   async function submit() {
-    if (!email || !pass) { setErr("Completa todos los campos."); return; }
+    if (!username || !pass) { setErr("Completa todos los campos."); return; }
     setErr("");
     setSubmitting(true);
     try {
-      await login(email, pass);
+      await login(username, pass);
       navigate("/admin/dashboard", { replace: true });
     } catch (e) {
       setErr(e.message || "Credenciales incorrectas.");
@@ -60,14 +60,14 @@ export default function AdminLoginPage() {
           <p>Acceso exclusivo para el equipo de Carvía.</p>
 
           <div className="field">
-            <label><User size={13} /> Correo</label>
+            <label><User size={13} /> Usuario</label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@carvia.mx"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="diego.olivas"
               onKeyDown={onKey}
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
           <div className="field">
