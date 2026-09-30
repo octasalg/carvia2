@@ -13,7 +13,7 @@ export const isConfigured = !!(SERVICE_ID && TEMPLATE_ID && PUBLIC_KEY);
  * Envía un correo de contacto via EmailJS.
  * Si EmailJS no está configurado, solo loguea en consola.
  */
-export async function sendContactEmail({ nombre, telefono, correo, autoInteres, mensaje }) {
+export async function sendContactEmail({ nombre, telefono, correo, autoInteres, mensaje, tipoOperacion }) {
   if (!isConfigured) {
     console.info("[EmailJS] No configurado. Mensaje recibido:", { nombre, telefono, correo });
     return { status: "demo" };
@@ -27,6 +27,7 @@ export async function sendContactEmail({ nombre, telefono, correo, autoInteres, 
       phone: telefono,
       reply_to: correo,
       auto_interes: autoInteres || "Sin especificar",
+      tipo_operacion: tipoOperacion || "Sin especificar",
       message: mensaje || "",
     },
     PUBLIC_KEY

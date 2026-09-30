@@ -619,6 +619,13 @@ img { display: block; max-width: 100%; }
 .dform-copy h3 { font-size: 24px; margin-bottom: 12px; }
 .dform-copy p { color: var(--muted); margin-bottom: 22px; }
 .dform-fields .field { margin-bottom: 12px; }
+.pay-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pay-option { background: var(--bg2); border: 1px solid var(--border); color: var(--text); padding: 11px 13px;
+  border-radius: 11px; font-family: var(--body); font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s; }
+.pay-option:hover { border-color: var(--orange); }
+.pay-option.active { border-color: var(--orange); background: rgba(255,90,31,.12); color: var(--orange); }
+.pay-option:focus-visible { outline: none; border-color: var(--orange); box-shadow: 0 0 0 3px rgba(255,90,31,.15); }
 
 .lightbox-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.95);
   backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center;

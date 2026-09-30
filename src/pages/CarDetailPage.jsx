@@ -306,8 +306,16 @@ export default function CarDetailPage() {
 }
 
 /* ---- Formulario de contacto en detalle ---- */
+// Opciones de "Tipo de operación". `value` debe coincidir con las opciones
+// de la propiedad tipo_de_operacion en HubSpot. Si no elige nada, no se manda
+// para no sobrescribir el valor que ya tenga un contacto existente.
+const OPCIONES_OPERACION = [
+  { label: "De contado", value: "Contado" },
+  { label: "Financiado", value: "Financiado" },
+];
+
 function DetailContactForm({ car }) {
-  const [form, setForm] = useState({ nombre: "", tel: "", correo: "", msg: "" });
+  const [form, setForm] = useState({ nombre: "", tel: "", correo: "", pago: "", msg: "" });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
@@ -318,10 +326,12 @@ function DetailContactForm({ car }) {
     try {
       // Para HubSpot: auto completo, precio y liga a la ficha, para saber exactamente qué unidad es.
       const hubspotAuto = `${car.marca} ${car.modelo} ${car.version} ${car.anio} · ${mxn(car.precio)} · ${window.location.origin}${window.location.pathname}`;
+      // En el correo y en Supabase el tipo de operación va al inicio del mensaje; en HubSpot va en su propio campo.
+      const mensajeConPago = form.pago ? `Tipo de operación: ${form.pago}${form.msg ? `\n${form.msg}` : ""}` : form.msg;
       const results = await Promise.allSettled([
-        sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
-        saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
-        sendHubspotLead({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: hubspotAuto, mensaje: form.msg }),
+        sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: mensajeConPago, tipoOperacion: form.pago }),
+        saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: mensajeConPago }),
+        sendHubspotLead({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: hubspotAuto, tipoOperacion: form.pago, mensaje: form.msg }),
       ]);
       const delivered = results.some((result) => result.status === "fulfilled" && !result.value?.error);
       if (delivered) {
@@ -361,6 +371,22 @@ function DetailContactForm({ car }) {
             <div className="form-row">
               <div className="field"><label>Teléfono</label><input value={form.tel} onChange={set("tel")} placeholder="10 dígitos" /></div>
               <div className="field"><label>Correo</label><input value={form.correo} onChange={set("correo")} placeholder="email" /></div>
+            </div>
+            <div className="field"><label>¿Cómo te interesa comprarlo?</label>
+              <div className="pay-options" role="radiogroup" aria-label="Tipo de operación">
+                {OPCIONES_OPERACION.map((opcion) => (
+                  <button
+                    key={opcion.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.pago === opcion.value}
+                    className={`pay-option${form.pago === opcion.value ? " active" : ""}`}
+                    onClick={() => setForm({ ...form, pago: form.pago === opcion.value ? "" : opcion.value })}
+                  >
+                    {opcion.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="field"><label>Mensaje</label>
               <textarea rows={2} value={form.msg} onChange={set("msg")} placeholder={`Me interesa el ${car.modelo}…`} />

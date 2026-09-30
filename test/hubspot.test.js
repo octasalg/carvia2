@@ -10,6 +10,7 @@ test("arma los campos de contacto para HubSpot", () => {
       correo: "maria@example.com",
       autoInteres: "Mazda 3 Sedán i Sport",
       mensaje: "¿Sigue disponible?",
+      tipoOperacion: "Financiado",
     },
     { autoField: "auto_de_interes", pageUri: "https://carvia.mx/auto/1", pageName: "Mazda 3" },
   );
@@ -20,6 +21,7 @@ test("arma los campos de contacto para HubSpot", () => {
     { objectTypeId: "0-1", name: "email", value: "maria@example.com" },
     { objectTypeId: "0-1", name: "message", value: "¿Sigue disponible?" },
     { objectTypeId: "0-1", name: "auto_de_interes", value: "Mazda 3 Sedán i Sport" },
+    { objectTypeId: "0-1", name: "tipo_de_operacion", value: "Financiado" },
   ]);
   assert.deepEqual(body.context, { pageUri: "https://carvia.mx/auto/1", pageName: "Mazda 3" });
 });

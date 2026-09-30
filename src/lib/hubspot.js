@@ -17,6 +17,8 @@ export const PORTAL_ID = String(env.VITE_HUBSPOT_PORTAL_ID || "").trim();
 export const FORM_ID = String(env.VITE_HUBSPOT_FORM_ID || "").trim();
 /** Nombre interno de la propiedad de contacto "Auto de interés". */
 export const AUTO_FIELD = String(env.VITE_HUBSPOT_AUTO_FIELD || "auto_de_interes").trim();
+/** Nombre interno de la propiedad de contacto "Tipo de operación" (De contado / Financiado). */
+export const OPERACION_FIELD = String(env.VITE_HUBSPOT_OPERACION_FIELD || "tipo_de_operacion").trim();
 
 export const isConfigured = !!(PORTAL_ID && FORM_ID);
 
@@ -38,8 +40,8 @@ function readHubspotCookie() {
  * para que HubSpot no rechace, por ejemplo, un correo vacío.
  */
 export function buildHubspotSubmission(
-  { nombre, telefono, correo, autoInteres, mensaje },
-  { autoField = AUTO_FIELD, hutk = "", pageUri = "", pageName = "" } = {},
+  { nombre, telefono, correo, autoInteres, mensaje, tipoOperacion },
+  { autoField = AUTO_FIELD, operacionField = OPERACION_FIELD, hutk = "", pageUri = "", pageName = "" } = {},
 ) {
   const fields = [
     ["firstname", nombre],
@@ -47,6 +49,7 @@ export function buildHubspotSubmission(
     ["email", correo],
     ["message", mensaje],
     [autoField, autoInteres],
+    [operacionField, tipoOperacion],
   ]
     .map(([name, value]) => ({ objectTypeId: CONTACT_OBJECT, name, value: clean(value) }))
     .filter((field) => field.name && field.value);
