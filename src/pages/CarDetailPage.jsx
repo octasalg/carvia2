@@ -13,6 +13,7 @@ import FinancingCalculator from "../components/FinancingCalculator";
 import { getAutoById } from "../services/autos";
 import { mxn, km, waLink, slug } from "../data/seed";
 import { sendContactEmail } from "../lib/emailjs";
+import { sendHubspotLead } from "../lib/hubspot";
 import { saveContacto } from "../services/autos";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 import { hasMeaningfulValue } from "../utils/hasMeaningfulValue";
@@ -315,9 +316,12 @@ function DetailContactForm({ car }) {
     if (!form.nombre || !form.tel) return;
     setLoading(true);
     try {
+      // Para HubSpot: auto completo, precio y liga a la ficha, para saber exactamente qué unidad es.
+      const hubspotAuto = `${car.marca} ${car.modelo} ${car.version} ${car.anio} · ${mxn(car.precio)} · ${window.location.origin}${window.location.pathname}`;
       const results = await Promise.allSettled([
         sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
         saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: `${car.marca} ${car.modelo} ${car.version}`, mensaje: form.msg }),
+        sendHubspotLead({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: hubspotAuto, mensaje: form.msg }),
       ]);
       const delivered = results.some((result) => result.status === "fulfilled" && !result.value?.error);
       if (delivered) {

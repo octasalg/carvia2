@@ -72,6 +72,9 @@ VITE_EMAILJS_TEMPLATE_ID=tu_template_id
 VITE_EMAILJS_PUBLIC_KEY=tu_public_key
 VITE_WHATSAPP_NUMBER=521XXXXXXXXXX
 VITE_META_PIXEL_ID=920694894141920
+VITE_HUBSPOT_PORTAL_ID=tu_hub_id
+VITE_HUBSPOT_FORM_ID=id_del_formulario_hubspot
+VITE_HUBSPOT_AUTO_FIELD=auto_de_interes
 META_PIXEL_ID=920694894141920
 META_CONVERSIONS_ACCESS_TOKEN=token_privado_generado_en_meta
 META_GRAPH_API_VERSION=v23.0
@@ -207,6 +210,7 @@ login funcione en producción, en el **panel de Supabase**:
 - [ ] Recargar en una ruta profunda (p. ej. `/catalogo`) **no** da 404.
 - [ ] El login de `/admin` funciona (Redirect URLs configuradas).
 - [ ] El formulario de contacto (EmailJS) y el botón de WhatsApp funcionan.
+- [ ] Los envíos del formulario aparecen como contactos en HubSpot.
 
 ---
 

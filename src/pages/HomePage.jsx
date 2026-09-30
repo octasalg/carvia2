@@ -10,6 +10,7 @@ import Footer from "../components/Footer";
 import Reveal from "../components/Reveal";
 import toast from "react-hot-toast";
 import { sendContactEmail } from "../lib/emailjs";
+import { sendHubspotLead } from "../lib/hubspot";
 import { saveContacto, getAvailableBrands } from "../services/autos";
 import Counter from "../components/Counter";
 import CarCard from "../components/CarCard";
@@ -478,6 +479,7 @@ function Contact() {
       const results = await Promise.allSettled([
         sendContactEmail({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: form.auto, mensaje: form.msg }),
         saveContacto({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: form.auto, mensaje: form.msg }),
+        sendHubspotLead({ nombre: form.nombre, telefono: form.tel, correo: form.correo, autoInteres: form.auto, mensaje: form.msg }),
       ]);
       const delivered = results.some((result) => result.status === "fulfilled" && !result.value?.error);
       if (delivered) {
