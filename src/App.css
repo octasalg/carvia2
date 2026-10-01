@@ -252,6 +252,16 @@ img { display: block; max-width: 100%; }
 .classification-add-trigger:hover { color: var(--orange2); }
 .classification-add-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
 .classification-add-row .btn { padding: 0 14px; min-height: 39px; font-size: 12px; }
+.classification-actions { display: inline-flex; align-items: center; gap: 12px; }
+.classification-manage { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--border2); border-radius: 10px; background: rgba(255,255,255,.02); }
+.classification-manage-title { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.classification-manage-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; }
+.classification-manage-row input { flex: 1; min-width: 0; }
+.classification-manage-name { display: flex; flex-direction: column; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.classification-manage-name small { font-size: 11px; color: var(--muted); }
+.classification-manage-buttons { display: inline-flex; gap: 6px; flex-shrink: 0; }
+.classification-manage-buttons .iconbtn:disabled { opacity: .35; cursor: not-allowed; }
+.classification-mini-btn { padding: 6px 10px; font-size: 12px; min-height: 0; }
 .search-go { grid-column: span 2; align-self: end; height: 44px; }
 
 /* Buscador simplificado (home) */

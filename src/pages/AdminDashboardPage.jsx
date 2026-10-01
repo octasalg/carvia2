@@ -5,7 +5,7 @@ import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, Star, Car,
   LogOut, LayoutDashboard, X, Upload, ArrowRight, Images, Save,
   ClipboardPaste, Wand2, ChevronDown, Printer,
-  Copy, Download, Users, UserPlus, KeyRound, ShieldCheck,
+  Copy, Download, Users, UserPlus, KeyRound, ShieldCheck, Settings2, Check,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
@@ -14,6 +14,7 @@ import { useAuth } from "../hooks/useAuth";
 import {
   getAutosAdmin, createAuto, updateAuto, deleteAuto,
   getVehicleClassificationOptions, createVehicleClassificationOption,
+  updateVehicleClassificationOption, deleteVehicleClassificationOption,
 } from "../services/autos";
 import { getHeroImages, saveHeroImages } from "../services/heroImages";
 import {
@@ -102,6 +103,52 @@ export default function AdminDashboardPage() {
     toast.success("Clasificación agregada");
     return result;
   }
+
+  /* Editar / eliminar clasificaciones: solo superadmin (también lo exige RLS). */
+  async function renameClassification(id, name) {
+    if (!isSuperadmin) {
+      toast.error("Solo el superadmin puede editar clasificaciones");
+      return { data: null, error: new Error("forbidden") };
+    }
+    const result = await updateVehicleClassificationOption(id, name);
+    if (result.error || !result.data) {
+      const duplicate = result.error?.code === "23505";
+      toast.error(duplicate ? "Esa clasificación ya existe" : (result.error?.message || "No se pudo editar la clasificación"));
+      return result;
+    }
+    setClassificationOptions((prev) => (
+      prev.map((option) => (option.id === id ? result.data : option))
+        .sort((a, b) => a.name.localeCompare(b.name, "es-MX"))
+    ));
+    setCars((prev) => prev.map((car) => (
+      car.clasificacionInternaId === id ? { ...car, clasificacionInterna: result.data.name } : car
+    )));
+    toast.success("Clasificación actualizada");
+    return result;
+  }
+
+  async function removeClassification(id) {
+    if (!isSuperadmin) {
+      toast.error("Solo el superadmin puede eliminar clasificaciones");
+      return { error: new Error("forbidden") };
+    }
+    const result = await deleteVehicleClassificationOption(id);
+    if (result.error) {
+      const inUse = result.error.code === "23503";
+      toast.error(inUse
+        ? "No se puede eliminar: hay autos con esta clasificación. Reasígnalos primero."
+        : (result.error.message || "No se pudo eliminar la clasificación"));
+      return result;
+    }
+    setClassificationOptions((prev) => prev.filter((option) => option.id !== id));
+    toast.success("Clasificación eliminada");
+    return result;
+  }
+
+  const classificationUsage = cars.reduce((acc, car) => {
+    if (car.clasificacionInternaId) acc[car.clasificacionInternaId] = (acc[car.clasificacionInternaId] || 0) + 1;
+    return acc;
+  }, {});
 
   async function handleLogout() {
     await logout();
@@ -377,6 +424,10 @@ export default function AdminDashboardPage() {
           initial={editing}
           classificationOptions={classificationOptions}
           onAddClassification={addClassification}
+          canManageClassifications={isSuperadmin}
+          classificationUsage={classificationUsage}
+          onRenameClassification={renameClassification}
+          onDeleteClassification={removeClassification}
           onSave={saveCar}
           onClose={() => setEditing(null)}
         />
@@ -641,7 +692,11 @@ function UsersSection() {
 /* ============================================================
    FORMULARIO DE AUTO (modal)
    ============================================================ */
-function CarForm({ initial, classificationOptions, onAddClassification, onSave, onClose }) {
+function CarForm({
+  initial, classificationOptions, onAddClassification, onSave, onClose,
+  canManageClassifications = false, classificationUsage = {},
+  onRenameClassification, onDeleteClassification,
+}) {
   const blank = {
     marca: "", modelo: "", version: "", anio: new Date().getFullYear(), precio: "",
     kilometraje: "", transmision: "Automática", motor: "", potencia: "", rendimiento: "", tipo: "Sedán",
@@ -660,6 +715,11 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
   const [addingClassification, setAddingClassification] = useState(false);
   const [newClassificationName, setNewClassificationName] = useState("");
   const [savingClassification, setSavingClassification] = useState(false);
+  const [managingClassifications, setManagingClassifications] = useState(false);
+  const [editingClassificationId, setEditingClassificationId] = useState(null);
+  const [editingClassificationName, setEditingClassificationName] = useState("");
+  const [confirmDeleteClassificationId, setConfirmDeleteClassificationId] = useState(null);
+  const [busyClassificationId, setBusyClassificationId] = useState(null);
   const [uploadAutoId] = useState(() => initial.id || `new-${Date.now()}`);
   const isEdit = !!initial.id;
 
@@ -717,6 +777,39 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
       }));
       setNewClassificationName("");
       setAddingClassification(false);
+    }
+  }
+
+  function startEditClassification(option) {
+    setConfirmDeleteClassificationId(null);
+    setEditingClassificationId(option.id);
+    setEditingClassificationName(option.name);
+  }
+
+  async function saveClassificationName(id) {
+    if (!editingClassificationName.trim()) {
+      toast.error("El nombre no puede quedar vacío");
+      return;
+    }
+    setBusyClassificationId(id);
+    const result = await onRenameClassification(id, editingClassificationName);
+    setBusyClassificationId(null);
+    if (!result.error && result.data) {
+      if (f.clasificacionInternaId === id) {
+        setF((current) => ({ ...current, clasificacionInterna: result.data.name }));
+      }
+      setEditingClassificationId(null);
+      setEditingClassificationName("");
+    }
+  }
+
+  async function confirmDeleteClassification(id) {
+    setBusyClassificationId(id);
+    const result = await onDeleteClassification(id);
+    setBusyClassificationId(null);
+    setConfirmDeleteClassificationId(null);
+    if (!result.error && f.clasificacionInternaId === id) {
+      setF((current) => ({ ...current, clasificacionInternaId: "", clasificacionInterna: "" }));
     }
   }
 
@@ -854,13 +947,29 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
             <div className="field">
               <div className="classification-field-head">
                 <label>Clasificación interna *</label>
-                <button
-                  type="button"
-                  className="classification-add-trigger"
-                  onClick={() => setAddingClassification((current) => !current)}
-                >
-                  <Plus size={12} /> Nueva opción
-                </button>
+                <div className="classification-actions">
+                  <button
+                    type="button"
+                    className="classification-add-trigger"
+                    onClick={() => setAddingClassification((current) => !current)}
+                  >
+                    <Plus size={12} /> Nueva opción
+                  </button>
+                  {canManageClassifications && (
+                    <button
+                      type="button"
+                      className="classification-add-trigger"
+                      onClick={() => {
+                        setManagingClassifications((current) => !current);
+                        setEditingClassificationId(null);
+                        setConfirmDeleteClassificationId(null);
+                      }}
+                      title="Editar o eliminar clasificaciones (solo superadmin)"
+                    >
+                      <Settings2 size={12} /> Gestionar
+                    </button>
+                  )}
+                </div>
               </div>
               <select value={f.clasificacionInternaId} onChange={selectClassification}>
                 <option value="">Selecciona</option>
@@ -891,6 +1000,82 @@ function CarForm({ initial, classificationOptions, onAddClassification, onSave, 
                   >
                     {savingClassification ? "Guardando…" : "Agregar"}
                   </button>
+                </div>
+              )}
+              {canManageClassifications && managingClassifications && (
+                <div className="classification-manage">
+                  <div className="classification-manage-title">
+                    <ShieldCheck size={12} /> Gestionar clasificaciones (superadmin)
+                  </div>
+                  {classificationOptions.length === 0 && (
+                    <span className="field-hint">No hay clasificaciones registradas.</span>
+                  )}
+                  {classificationOptions.map((option) => {
+                    const usage = classificationUsage[option.id] || 0;
+                    const busy = busyClassificationId === option.id;
+                    const isEditingThis = editingClassificationId === option.id;
+                    const isConfirmingThis = confirmDeleteClassificationId === option.id;
+                    return (
+                      <div key={option.id} className="classification-manage-row">
+                        {isEditingThis ? (
+                          <>
+                            <input
+                              value={editingClassificationName}
+                              onChange={(e) => setEditingClassificationName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") { e.preventDefault(); saveClassificationName(option.id); }
+                                if (e.key === "Escape") { e.stopPropagation(); setEditingClassificationId(null); }
+                              }}
+                              maxLength={80}
+                              autoFocus
+                            />
+                            <div className="classification-manage-buttons">
+                              <button type="button" className="iconbtn" title="Guardar" disabled={busy} onClick={() => saveClassificationName(option.id)}>
+                                <Check size={14} />
+                              </button>
+                              <button type="button" className="iconbtn" title="Cancelar" disabled={busy} onClick={() => setEditingClassificationId(null)}>
+                                <X size={14} />
+                              </button>
+                            </div>
+                          </>
+                        ) : isConfirmingThis ? (
+                          <>
+                            <span className="classification-manage-name">¿Eliminar <strong>{option.name}</strong>?</span>
+                            <div className="classification-manage-buttons">
+                              <button type="button" className="btn btn-danger classification-mini-btn" disabled={busy} onClick={() => confirmDeleteClassification(option.id)}>
+                                {busy ? "Eliminando…" : "Eliminar"}
+                              </button>
+                              <button type="button" className="btn btn-ghost classification-mini-btn" disabled={busy} onClick={() => setConfirmDeleteClassificationId(null)}>
+                                Cancelar
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="classification-manage-name">
+                              {option.name}
+                              <small>{usage === 0 ? "Sin autos" : `${usage} auto${usage === 1 ? "" : "s"}`}</small>
+                            </span>
+                            <div className="classification-manage-buttons">
+                              <button type="button" className="iconbtn" title="Editar nombre" onClick={() => startEditClassification(option)}>
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="iconbtn danger"
+                                title={usage > 0 ? "Reasigna los autos antes de eliminarla" : "Eliminar"}
+                                disabled={usage > 0}
+                                onClick={() => { setEditingClassificationId(null); setConfirmDeleteClassificationId(option.id); }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <span className="field-hint">Sólo se pueden eliminar clasificaciones sin autos asignados.</span>
                 </div>
               )}
               <span className="field-hint">Sólo visible en el panel administrativo.</span>

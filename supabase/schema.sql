@@ -169,6 +169,8 @@ create policy "Auth puede ver clasificaciones internas"
   to authenticated
   using (true);
 
+-- NOTA: después de admin_users_roles.sql ejecuta restrict_classifications_superadmin.sql
+-- para que solo el superadmin pueda editar/eliminar clasificaciones.
 create policy "Auth puede gestionar clasificaciones internas"
   on public.clasificaciones_internas
   for all

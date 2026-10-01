@@ -256,6 +256,79 @@ export async function createVehicleClassificationOption(name) {
   }
 }
 
+/** Normaliza y valida el nombre de una clasificación. */
+function normalizeClassificationName(name) {
+  const normalizedName = String(name || "").trim().replace(/\s+/g, " ");
+  if (!normalizedName || normalizedName.length > 80) {
+    return { name: null, error: new Error("La clasificación debe tener entre 1 y 80 caracteres") };
+  }
+  return { name: normalizedName, error: null };
+}
+
+const NO_PERMISSION_ERROR = () => Object.assign(
+  new Error("Solo el superadmin puede editar o eliminar clasificaciones"),
+  { code: "42501" },
+);
+
+/** Renombra una clasificación interna (solo superadmin; lo valida RLS en la BD). */
+export async function updateVehicleClassificationOption(id, name) {
+  const { name: normalizedName, error: nameError } = normalizeClassificationName(name);
+  if (nameError) return { data: null, error: nameError };
+
+  if (!isConfigured) {
+    const options = getLocalClassifications();
+    const duplicate = options.find((option) => (
+      option.id !== id && option.name.toLocaleLowerCase("es-MX") === normalizedName.toLocaleLowerCase("es-MX")
+    ));
+    if (duplicate) return { data: null, error: Object.assign(new Error("Esa clasificación ya existe"), { code: "23505" }) };
+    const updated = { id, name: normalizedName };
+    saveLocalClassifications(options.map((option) => (option.id === id ? updated : option)));
+    saveLocalCars(getLocalCars().map((car) => (
+      car.clasificacionInternaId === id ? { ...car, clasificacionInterna: normalizedName } : car
+    )));
+    return { data: updated, error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("clasificaciones_internas")
+      .update({ nombre: normalizedName })
+      .eq("id", id)
+      .select("id,nombre");
+    if (error) return { data: null, error };
+    // Con RLS, una actualización no permitida no falla: simplemente no afecta filas.
+    if (!data || data.length === 0) return { data: null, error: NO_PERMISSION_ERROR() };
+    return { data: { id: data[0].id, name: data[0].nombre }, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
+/** Elimina una clasificación interna sin autos asignados (solo superadmin). */
+export async function deleteVehicleClassificationOption(id) {
+  if (!isConfigured) {
+    const inUse = getLocalCars().some((car) => car.clasificacionInternaId === id);
+    if (inUse) {
+      return { error: Object.assign(new Error("La clasificación está asignada a uno o más autos"), { code: "23503" }) };
+    }
+    saveLocalClassifications(getLocalClassifications().filter((option) => option.id !== id));
+    return { error: null };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("clasificaciones_internas")
+      .delete()
+      .eq("id", id)
+      .select("id");
+    if (error) return { error };
+    if (!data || data.length === 0) return { error: NO_PERMISSION_ERROR() };
+    return { error: null };
+  } catch (error) {
+    return { error };
+  }
+}
+
 /**
  * Obtiene un auto por ID.
  */
