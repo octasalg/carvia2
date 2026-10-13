@@ -9,6 +9,12 @@ import { isConfigured as supabaseConfigured } from "../lib/supabase";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
+  // Modo demo: solo informativo y solo si fue habilitado por entorno.
+  const demoReady =
+    import.meta.env.VITE_DEMO_MODE === "true" &&
+    !!import.meta.env.VITE_DEMO_EMAIL &&
+    !!import.meta.env.VITE_DEMO_PASS;
+  const demoEmail = String(import.meta.env.VITE_DEMO_EMAIL || "").trim().toLowerCase();
   const { login, isAuthenticated, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [pass, setPass] = useState("");
@@ -92,9 +98,9 @@ export default function AdminLoginPage() {
             {submitting ? "Ingresando…" : <>Iniciar sesión <ArrowRight size={16} /></>}
           </button>
 
-          {!supabaseConfigured && (
+          {!supabaseConfigured && demoReady && (
             <p className="login-hint">
-              Demo · correo <code>admin@carvia.mx</code> · contraseña <code>carvia2025</code>
+              Modo demo activo{demoEmail ? <> · usuario <code>{demoEmail}</code></> : null}
             </p>
           )}
 

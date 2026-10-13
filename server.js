@@ -29,6 +29,69 @@ const PORT = Number(process.env.PORT) || 80;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
 
+/* ============================================================
+   Encabezados de seguridad (Hallazgo #3 de la revisión)
+   ------------------------------------------------------------
+   Se aplican a TODAS las respuestas. El CSP se construye a partir
+   de las integraciones reales del sitio (GA, Meta Pixel, HubSpot,
+   EmailJS, Google Fonts, Unsplash y el propio Supabase).
+
+   CSP: por defecto va en modo Report-Only (no rompe nada, solo
+   reporta en la consola del navegador). Cuando confirmes en
+   producción que no hay violaciones, define CSP_ENFORCE=true para
+   activarlo en modo bloqueo.
+   ============================================================ */
+const SUPABASE_ORIGIN = (() => {
+  try { return SUPABASE_URL ? new URL(SUPABASE_URL).origin : ""; }
+  catch { return ""; }
+})();
+const SUPABASE_WSS = SUPABASE_ORIGIN ? SUPABASE_ORIGIN.replace(/^https:/, "wss:") : "";
+
+const CSP = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  // Scripts propios + inline de index.html (GA/Pixel) + GTM + Meta.
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  [
+    "img-src 'self' data: blob:",
+    "https://images.unsplash.com https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com",
+    SUPABASE_ORIGIN,
+  ].filter(Boolean).join(" "),
+  [
+    "connect-src 'self'",
+    SUPABASE_ORIGIN, SUPABASE_WSS,
+    "https://api.emailjs.com https://api.hsforms.com https://*.hsforms.com",
+    "https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com",
+    "https://connect.facebook.net https://www.facebook.com",
+  ].filter(Boolean).join(" "),
+  "frame-src 'self'",
+].join("; ");
+
+const CSP_ENFORCE = process.env.CSP_ENFORCE === "true";
+const CSP_HEADER = CSP_ENFORCE ? "Content-Security-Policy" : "Content-Security-Policy-Report-Only";
+
+const BASE_SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  [CSP_HEADER]: CSP,
+};
+
+function applySecurityHeaders(res, proto) {
+  for (const [name, value] of Object.entries(BASE_SECURITY_HEADERS)) res.setHeader(name, value);
+  // HSTS solo tiene sentido sobre HTTPS (el navegador lo ignora en HTTP).
+  if (proto === "https") {
+    res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
+  }
+}
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -209,6 +272,7 @@ const server = http.createServer(async (req, res) => {
     const proto = (req.headers["x-forwarded-proto"] || "").split(",")[0].trim() || "http";
     const host = (req.headers["x-forwarded-host"] || req.headers.host || "localhost").split(",")[0].trim();
     const origin = `${proto}://${host}`;
+    applySecurityHeaders(res, proto);
     const { pathname } = new URL(req.url, origin);
 
     if (pathname === "/api/meta/conversions") {

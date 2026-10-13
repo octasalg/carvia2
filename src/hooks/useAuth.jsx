@@ -9,9 +9,21 @@ import { supabase, isConfigured as supabaseConfigured } from "../lib/supabase";
 
 const AuthContext = createContext(null);
 
+/* ------------------------------------------------------------
+   MODO DEMO (solo desarrollo / entornos de prueba)
+   ------------------------------------------------------------
+   Se activa ÚNICAMENTE con opt-in explícito: VITE_DEMO_MODE=true.
+   NUNCA se enciende por el simple hecho de que falten las variables
+   de Supabase, para que un build de producción mal configurado jamás
+   abra el panel administrativo. Las credenciales se leen del entorno
+   (no se hornean en el bundle); si no están, el demo queda inhabilitado.
+   ------------------------------------------------------------ */
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 const DEMO_KEY = "carvia:demo:authed";
-const DEMO_EMAIL = "admin@carvia.mx";
-const DEMO_PASS = "carvia2025";
+const DEMO_EMAIL = String(import.meta.env.VITE_DEMO_EMAIL || "").trim().toLowerCase();
+const DEMO_PASS = String(import.meta.env.VITE_DEMO_PASS || "");
+// El demo solo está "listo" si se pidió explícitamente Y hay credenciales.
+const DEMO_READY = DEMO_MODE && DEMO_EMAIL.length > 0 && DEMO_PASS.length > 0;
 
 const AUTH_EMAIL_DOMAIN = import.meta.env.VITE_AUTH_EMAIL_DOMAIN || "carvia.mx";
 
@@ -50,10 +62,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabaseConfigured) {
-      const authed = localStorage.getItem(DEMO_KEY) === "true";
-      const demoSession = authed ? { demo: true, user: { email: DEMO_EMAIL } } : null;
-      setSession(demoSession);
-      setProfile(authed ? { username: "demo", role: "superadmin", active: true } : null);
+      // Sin Supabase: solo se permite sesión demo si fue habilitada
+      // explícitamente con VITE_DEMO_MODE=true y hay credenciales demo.
+      if (DEMO_READY) {
+        const authed = localStorage.getItem(DEMO_KEY) === "true";
+        const demoSession = authed ? { demo: true, user: { email: DEMO_EMAIL } } : null;
+        setSession(demoSession);
+        setProfile(authed ? { username: "demo", role: "superadmin", active: true } : null);
+      } else {
+        setSession(null);
+        setProfile(null);
+      }
       setLoading(false);
       return;
     }
@@ -82,6 +101,11 @@ export function AuthProvider({ children }) {
    */
   const login = async (identifier, password) => {
     if (!supabaseConfigured) {
+      // El acceso demo solo existe con opt-in explícito. En producción
+      // (sin el flag) esto lanza un error claro en vez de abrir el panel.
+      if (!DEMO_READY) {
+        throw new Error("El sistema de acceso no está configurado.");
+      }
       if (toEmail(identifier) === DEMO_EMAIL && password === DEMO_PASS) {
         const s = { demo: true, user: { email: DEMO_EMAIL } };
         localStorage.setItem(DEMO_KEY, "true");
