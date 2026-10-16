@@ -768,6 +768,28 @@ img { display: block; max-width: 100%; }
 .admin-search input { flex: 1; background: none; border: none; color: var(--text); padding: 13px 0;
   font-family: var(--body); font-size: 14px; }
 .admin-search input:focus { outline: none; }
+.admin-filters { display: flex; gap: 12px; margin-bottom: 18px; }
+.admin-filters .admin-search { flex: 1; min-width: 0; margin-bottom: 0; }
+.admin-search-clear { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+.admin-search-clear:hover { color: var(--text); border-color: var(--border2); }
+.admin-filter-select { position: relative; display: flex; align-items: center; gap: 8px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; padding: 0 36px 0 14px; color: var(--muted2); min-width: 240px; }
+.admin-filter-select.active { border-color: var(--orange); background: rgba(255,90,31,.06); color: var(--orange); }
+.admin-filter-select select { flex: 1; appearance: none; background: none; border: none; color: var(--text);
+  padding: 13px 0; font-family: var(--body); font-size: 14px; cursor: pointer; min-width: 0; }
+.admin-filter-select select:focus { outline: none; }
+.admin-filter-select select option { background: var(--surface); color: var(--text); }
+.admin-filter-caret { position: absolute; right: 12px; pointer-events: none; color: var(--muted2); }
+.admin-filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: -6px 0 14px; font-size: 13px; color: var(--muted); }
+.admin-filter-summary button { background: none; border: none; color: var(--orange); font-weight: 600;
+  font-size: 13px; cursor: pointer; padding: 0; }
+.admin-filter-summary button:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .admin-filters { flex-direction: column; }
+  .admin-filter-select { min-width: 0; }
+}
 .admin-table { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
 .atable-head, .atable-row { display: grid; grid-template-columns: 2.1fr .95fr .9fr 1.05fr 1.3fr 1.4fr;
   align-items: center; gap: 16px; padding: 14px 20px; }

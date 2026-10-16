@@ -5,7 +5,7 @@ import {
   Search, Plus, Pencil, Trash2, Eye, EyeOff, Star, Car,
   LogOut, LayoutDashboard, X, Upload, ArrowRight, Images, Save,
   ClipboardPaste, Wand2, ChevronDown, Printer,
-  Copy, Download, Users, UserPlus, KeyRound, ShieldCheck, Settings2, Check,
+  Copy, Download, Users, UserPlus, KeyRound, ShieldCheck, Settings2, Check, Filter,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ImageUploader from "../components/ImageUploader";
@@ -65,6 +65,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [view, setView] = useState("all"); // all | visible | hidden | featured
+  const [classFilter, setClassFilter] = useState("all"); // all | none | <id de clasificación>
   const [editing, setEditing] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
   const [section, setSection] = useState("inventory"); // inventory | hero
@@ -206,12 +207,23 @@ export default function AdminDashboardPage() {
     if (view === "visible" && !c.visible) return false;
     if (view === "hidden" && c.visible) return false;
     if (view === "featured" && !c.destacado) return false;
+    if (classFilter === "none" && c.clasificacionInternaId) return false;
+    if (classFilter !== "all" && classFilter !== "none" && c.clasificacionInternaId !== classFilter) return false;
     if (q) {
       const hay = `${c.marca} ${c.modelo} ${c.version} ${c.anio} ${c.clasificacionInterna || "Sin clasificar"}`.toLowerCase();
       if (!hay.includes(q.toLowerCase())) return false;
     }
     return true;
   });
+
+  const unclassifiedCount = cars.filter((c) => !c.clasificacionInternaId).length;
+  const hasActiveFilters = Boolean(q) || classFilter !== "all" || view !== "all";
+
+  function clearFilters() {
+    setQ("");
+    setClassFilter("all");
+    setView("all");
+  }
 
   const stats = {
     total: cars.length,
@@ -346,15 +358,43 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
 
-              {/* Buscador */}
-              <div className="admin-search">
-                <Search size={16} />
-                <input
-                  placeholder="Buscar por marca, modelo, año…"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
+              {/* Buscador y filtros */}
+              <div className="admin-filters">
+                <div className="admin-search">
+                  <Search size={16} />
+                  <input
+                    placeholder="Buscar por marca, modelo, versión, año…"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                  {q && (
+                    <button type="button" className="admin-search-clear" onClick={() => setQ("")} title="Limpiar búsqueda">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <label className={`admin-filter-select ${classFilter !== "all" ? "active" : ""}`}>
+                  <Filter size={15} />
+                  <select
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value)}
+                    aria-label="Filtrar por clasificación interna"
+                  >
+                    <option value="all">Todas las clasificaciones ({cars.length})</option>
+                    {classificationOptions.map(({ id, name }) => (
+                      <option key={id} value={id}>{name} ({classificationUsage[id] || 0})</option>
+                    ))}
+                    <option value="none">Sin clasificar ({unclassifiedCount})</option>
+                  </select>
+                  <ChevronDown size={15} className="admin-filter-caret" />
+                </label>
               </div>
+              {hasActiveFilters && !loading && (
+                <div className="admin-filter-summary">
+                  <span>Mostrando {filtered.length} de {cars.length} autos</span>
+                  <button type="button" onClick={clearFilters}>Limpiar filtros</button>
+                </div>
+              )}
 
               {/* Tabla */}
               {loading ? (
