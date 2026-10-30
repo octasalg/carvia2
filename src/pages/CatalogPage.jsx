@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Car, Filter, ChevronDown } from "lucide-react";
+import { Car, Filter, ChevronDown, SearchX } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import CarCard from "../components/CarCard";
@@ -9,8 +9,10 @@ import SearchPanel from "../components/SearchPanel";
 import { SkeletonGrid } from "../components/SkeletonCard";
 import { getAutos, getAvailableBrands } from "../services/autos";
 import { emptyFilters } from "../data/seed";
+import { getFinalPrice } from "../utils/pricing";
 
 const PAGE_SIZE = 12;
+const SEARCH_DEBOUNCE_MS = 300;
 const SORT_OPTIONS = [
   { v: "recientes", l: "Más recientes" },
   { v: "precio-asc", l: "Precio: menor a mayor" },
@@ -47,24 +49,56 @@ export default function CatalogPage() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [appliedFilters, setAppliedFilters] = useState(filters);
+  // Texto del buscador ya "asentado" (debounce): se aplica solo, sin Enter ni botón.
+  const [searchQuery, setSearchQuery] = useState(filters.q);
+  const [refreshing, setRefreshing] = useState(false);
+  const requestIdRef = useRef(0);
+  const hasLoadedRef = useRef(false);
+
+  // Filtros efectivos: los demás filtros aplicados + la búsqueda en tiempo real.
+  const activeFilters = useMemo(
+    () => ({ ...appliedFilters, q: searchQuery.trim() }),
+    [appliedFilters, searchQuery],
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
     getAvailableBrands().then(({ data }) => { if (data?.length) setAvailableBrands(data); });
   }, []);
 
+  // Búsqueda en tiempo real con debounce de ~300 ms.
+  useEffect(() => {
+    if (filters.q === searchQuery) return undefined;
+    const timer = setTimeout(() => {
+      setSearchQuery(filters.q);
+      setSearchParams((prev) => {
+        const params = new URLSearchParams(prev);
+        if (filters.q.trim()) params.set("q", filters.q.trim()); else params.delete("q");
+        return params;
+      }, { replace: true });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [filters.q, searchQuery, setSearchParams]);
+
   useEffect(() => {
     loadCars(true);
-  }, [appliedFilters]);
+  }, [activeFilters]);
 
   async function loadCars(reset = false) {
+    const requestId = ++requestIdRef.current;
     if (reset) {
-      setLoading(true);
+      // Primera carga: skeleton. Búsquedas siguientes: se conservan los resultados
+      // actuales atenuados para evitar parpadeos mientras el usuario escribe.
+      if (hasLoadedRef.current) setRefreshing(true); else setLoading(true);
       setError(null);
       setPage(0);
     }
     const currentPage = reset ? 0 : page;
-    const { data, count, error } = await getAutos({ filters: appliedFilters, page: currentPage });
+    const { data, count, error } = await getAutos({ filters: activeFilters, page: currentPage });
+    // Ignorar respuestas de búsquedas anteriores que llegan tarde.
+    if (requestId !== requestIdRef.current) return;
+    hasLoadedRef.current = true;
+    setRefreshing(false);
     if (error) { setError(error); setLoading(false); return; }
     if (reset) {
       setAllCars(data || []);
@@ -80,7 +114,9 @@ export default function CatalogPage() {
     const nextPage = page + 1;
     setPage(nextPage);
     setLoadingMore(true);
-    const { data, error } = await getAutos({ filters: appliedFilters, page: nextPage });
+    const requestId = requestIdRef.current;
+    const { data, error } = await getAutos({ filters: activeFilters, page: nextPage });
+    if (requestId !== requestIdRef.current) return;
     if (error) { setLoadingMore(false); return; }
     setAllCars((prev) => {
       const existingIds = new Set(prev.map((c) => c.id));
@@ -93,6 +129,7 @@ export default function CatalogPage() {
   function handleSearch() {
     // Aplicar filtros y actualizar URL
     setAppliedFilters({ ...filters });
+    setSearchQuery(filters.q);
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
     setSearchParams(params);
@@ -101,8 +138,8 @@ export default function CatalogPage() {
   // Ordenamiento local
   const sorted = useMemo(() => {
     let r = [...allCars];
-    if (sort === "precio-asc") r.sort((a, b) => a.precio - b.precio);
-    if (sort === "precio-desc") r.sort((a, b) => b.precio - a.precio);
+    if (sort === "precio-asc") r.sort((a, b) => getFinalPrice(a) - getFinalPrice(b));
+    if (sort === "precio-desc") r.sort((a, b) => getFinalPrice(b) - getFinalPrice(a));
     if (sort === "km") r.sort((a, b) => a.kilometraje - b.kilometraje);
     if (sort === "anio") r.sort((a, b) => b.anio - a.anio);
     return r;
@@ -165,6 +202,23 @@ export default function CatalogPage() {
               <p>No se pudieron cargar los autos. Verifica tu conexión.</p>
               <button className="btn btn-ghost" onClick={() => loadCars(true)}>Reintentar</button>
             </div>
+          ) : sorted.length === 0 && activeFilters.q ? (
+            <div className="empty" aria-live="polite">
+              <SearchX size={40} />
+              <h3>No encontramos vehículos que coincidan con tu búsqueda</h3>
+              <p>Revisa la ortografía o intenta con otra marca, modelo o versión.</p>
+              <button className="btn btn-ghost" onClick={() => {
+                setFilters((prev) => ({ ...prev, q: "" }));
+                setSearchQuery("");
+                setSearchParams((prev) => {
+                  const params = new URLSearchParams(prev);
+                  params.delete("q");
+                  return params;
+                }, { replace: true });
+              }}>
+                Borrar búsqueda
+              </button>
+            </div>
           ) : sorted.length === 0 ? (
             <div className="empty">
               <Car size={40} />
@@ -173,6 +227,7 @@ export default function CatalogPage() {
               <button className="btn btn-ghost" onClick={() => {
                 setFilters(emptyFilters);
                 setAppliedFilters(emptyFilters);
+                setSearchQuery("");
                 setSearchParams({});
               }}>
                 Limpiar filtros
@@ -180,7 +235,7 @@ export default function CatalogPage() {
             </div>
           ) : (
             <>
-              <div className="cards-grid catalog-grid">
+              <div className={`cards-grid catalog-grid${refreshing ? " is-refreshing" : ""}`} aria-busy={refreshing}>
                 {sorted.map((c, i) => (
                   <CarCard key={c.id} car={c} delay={(i % 3) * 80} showCertificationBanner />
                 ))}

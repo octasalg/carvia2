@@ -17,6 +17,7 @@ import { sendHubspotLead } from "../lib/hubspot";
 import { saveContacto } from "../services/autos";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 import { hasMeaningfulValue } from "../utils/hasMeaningfulValue";
+import { getVehiclePricing, getFinalPrice } from "../utils/pricing";
 import { getVehicleParameters, trackMetaContact, trackMetaLead, trackMetaViewContent } from "../meta/metaPixel";
 import toast from "react-hot-toast";
 
@@ -127,8 +128,9 @@ export default function CarDetailPage() {
 
   const imgs = car.imagenes?.length ? car.imagenes : [""];
   const autoName = `${car.marca} ${car.modelo} ${car.version} ${car.anio}`;
-  const hasValidPrice = Number.isFinite(Number(car.precio)) && Number(car.precio) > 0;
-  const financing = hasValidPrice ? calculateFinancing(car.precio, car.anio) : null;
+  const pricing = getVehiclePricing(car);
+  const hasValidPrice = pricing.finalPrice > 0;
+  const financing = hasValidPrice ? calculateFinancing(pricing.finalPrice, car.anio) : null;
   const visibleSpecs = [
     { key: "invoice", label: "Factura", value: car.factura, icon: FileText },
     { key: "year", label: "Año", value: car.anio, icon: Calendar },
@@ -141,9 +143,9 @@ export default function CarDetailPage() {
   return (
     <>
       <Helmet>
-        <title>{autoName} — {mxn(car.precio)} | Carvía</title>
+        <title>{autoName} — {mxn(pricing.finalPrice)} | Carvía</title>
         <meta name="description" content={`${autoName}. ${km(car.kilometraje)}, transmisión ${car.transmision}. ${car.descripcion?.slice(0, 120)}…`} />
-        <meta property="og:title" content={`${autoName} — ${mxn(car.precio)} | Carvía`} />
+        <meta property="og:title" content={`${autoName} — ${mxn(pricing.finalPrice)} | Carvía`} />
         <meta property="og:description" content={car.descripcion || ""} />
         {imgs[0] && <meta property="og:image" content={imgs[0]} />}
         <meta property="og:type" content="product" />
@@ -217,7 +219,21 @@ export default function CarDetailPage() {
             <div className="detail-info">
               <p className="detail-brand">{car.marca} · {car.anio}</p>
               <h1 className="detail-title">{car.modelo} <span>{car.version}</span></h1>
-              <p className="detail-price">{mxn(car.precio)}</p>
+              {pricing.hasOffer ? (
+                <div className="detail-price-wrap">
+                  <span className="detail-offer-tag">🔥 Oferta</span>
+                  <p className="detail-price-original">
+                    Precio original <s>{mxn(pricing.listPrice)}</s>
+                  </p>
+                  <p className="detail-price detail-price-offer">
+                    <span className="sr-only">Precio de oferta: </span>
+                    {mxn(pricing.offerPrice)}
+                  </p>
+                  <p className="detail-price-savings">Ahorras {mxn(pricing.savings)}</p>
+                </div>
+              ) : (
+                <p className="detail-price">{mxn(car.precio)}</p>
+              )}
               {hasValidPrice && (
                 <div className="detail-financing" aria-live="polite">
                   <p className="detail-financing-label">Mensualidad estimada</p>
@@ -279,7 +295,7 @@ export default function CarDetailPage() {
           <div className="detail-payment-calculator">
             <FinancingCalculator
               key={car.id}
-              price={car.precio}
+              price={pricing.finalPrice}
               vehicleYear={car.anio}
             />
           </div>
@@ -325,7 +341,7 @@ function DetailContactForm({ car }) {
     setLoading(true);
     try {
       // Para HubSpot: auto completo, precio y liga a la ficha, para saber exactamente qué unidad es.
-      const hubspotAuto = `${car.marca} ${car.modelo} ${car.version} ${car.anio} · ${mxn(car.precio)} · ${window.location.origin}${window.location.pathname}`;
+      const hubspotAuto = `${car.marca} ${car.modelo} ${car.version} ${car.anio} · ${mxn(getFinalPrice(car))} · ${window.location.origin}${window.location.pathname}`;
       // En el correo y en Supabase el tipo de operación va al inicio del mensaje; en HubSpot va en su propio campo.
       const mensajeConPago = form.pago ? `Tipo de operación: ${form.pago}${form.msg ? `\n${form.msg}` : ""}` : form.msg;
       const results = await Promise.allSettled([

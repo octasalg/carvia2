@@ -37,6 +37,7 @@ create table if not exists public.autos (
   proximamente    boolean default false,
   vendido         boolean default false,
   precio_especial boolean default false,
+  precio_oferta   numeric not null default 0,
   garantia_agencia                boolean not null default false,
   garantia_ultimo_servicio        date,
   garantia_proximo_servicio_fecha date,
@@ -108,6 +109,15 @@ alter table public.autos
 -- Etiqueta "Precio especial" (cinta en el catálogo). Idempotente, no borra datos.
 alter table public.autos
   add column if not exists precio_especial boolean default false;
+
+-- Precio de oferta (0 = sin oferta). Ver supabase/add_precio_oferta.sql. Idempotente.
+alter table public.autos
+  add column if not exists precio_oferta numeric not null default 0;
+alter table public.autos
+  drop constraint if exists autos_precio_oferta_valido;
+alter table public.autos
+  add constraint autos_precio_oferta_valido
+  check (precio_oferta = 0 or (precio_oferta > 0 and precio is not null and precio_oferta < precio));
 
 -- Potencia (HP) y rendimiento (km/l) para el identificador. Idempotente, no borra datos.
 alter table public.autos

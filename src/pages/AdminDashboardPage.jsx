@@ -24,6 +24,7 @@ import { BRANDS, TRANSMISSIONS, TYPES, mxn, km } from "../data/seed";
 import { parseCarText } from "../utils/parseCarText";
 import { printIdentificador } from "../utils/identificador";
 import { isValidDateInput, warrantyFormState } from "../utils/agencyWarranty";
+import { getVehiclePricing, validateVehiclePrices } from "../utils/pricing";
 import toast from "react-hot-toast";
 
 const ADMIN_DATE_FORMATTER = new Intl.DateTimeFormat("es-MX", {
@@ -419,7 +420,15 @@ export default function AdminDashboardPage() {
                           <span>{c.version}</span>
                         </div>
                       </div>
-                      <div className="ar-price">{mxn(c.precio)}</div>
+                      {(() => {
+                        const pricing = getVehiclePricing(c);
+                        return (
+                          <div className="ar-price">
+                            {mxn(c.precio)}
+                            {pricing.hasOffer && <span className="ar-price-offer">Oferta {mxn(pricing.offerPrice)}</span>}
+                          </div>
+                        );
+                      })()}
                       <div className="ar-meta">{c.anio}<span>{km(c.kilometraje)}</span></div>
                       {(() => {
                         const registered = formatRegistrationDate(c.fechaCreacion);
@@ -743,9 +752,10 @@ function CarForm({
     colorExterior: "", colorInterior: "", factura: "", descripcion: "", equipamiento: [],
     clasificacionInternaId: "", clasificacionInterna: "",
     imagenes: [], coverPosition: "50% 50%", destacado: false, visible: true, oferta: false, proximamente: false, vendido: false, precio_especial: false,
+    precio_oferta: 0,
     ...warrantyFormState(),
   };
-  const [f, setF] = useState({ ...blank, ...initial, ...warrantyFormState(initial) });
+  const [f, setF] = useState({ ...blank, ...initial, precio_oferta: initial.precio_oferta ?? 0, ...warrantyFormState(initial) });
   const [equipInput, setEquipInput] = useState((initial.equipamiento || []).join(", "));
   const [imageUrls, setImageUrls] = useState(initial.imagenes || []);
   const [useUploader, setUseUploader] = useState(false);
@@ -871,6 +881,8 @@ function CarForm({
 
   function submit() {
     if (!f.marca || !f.modelo) { toast.error("Marca y modelo son requeridos"); return; }
+    const priceError = validateVehiclePrices(f.precio, f.precio_oferta);
+    if (priceError) { toast.error(priceError); return; }
     if (!classificationOptions.some((option) => option.id === f.clasificacionInternaId)) {
       toast.error("Selecciona una clasificación interna");
       return;
@@ -898,6 +910,7 @@ function CarForm({
     onSave({
       ...f,
       precio: Number(f.precio) || 0,
+      precio_oferta: Number(f.precio_oferta) || 0,
       kilometraje: Number(f.kilometraje) || 0,
       anio: Number(f.anio) || new Date().getFullYear(),
       potencia: f.potencia === "" || f.potencia == null ? null : Number(f.potencia),
@@ -956,7 +969,22 @@ function CarForm({
             <div className="field"><label>Modelo *</label><input value={f.modelo} onChange={set("modelo")} placeholder="Ej. Mazda 3" /></div>
             <div className="field"><label>Versión</label><input value={f.version} onChange={set("version")} placeholder="Ej. Grand Touring" /></div>
             <div className="field"><label>Año</label><input type="number" value={f.anio} onChange={set("anio")} /></div>
-            <div className="field"><label>Precio (MXN)</label><input type="number" value={f.precio} onChange={set("precio")} placeholder="319000" /></div>
+            <div className="field"><label>Precio de lista (MXN) *</label><input type="number" min="1" required value={f.precio} onChange={set("precio")} placeholder="319000" /></div>
+            <div className="field">
+              <label>Precio de oferta (MXN)</label>
+              <input type="number" min="0" value={f.precio_oferta} onChange={set("precio_oferta")} placeholder="0" />
+              {(() => {
+                const pricing = getVehiclePricing(f);
+                const offer = Number(f.precio_oferta);
+                if (pricing.hasOffer) {
+                  return <span className="field-hint field-hint-offer">Oferta activa · Ahorro de {mxn(pricing.savings)}</span>;
+                }
+                if (Number.isFinite(offer) && offer > 0) {
+                  return <span className="field-hint field-hint-error">Debe ser menor que el precio de lista</span>;
+                }
+                return <span className="field-hint">Déjalo en 0 si el auto no tiene oferta</span>;
+              })()}
+            </div>
             <div className="field"><label>Kilometraje</label><input type="number" value={f.kilometraje} onChange={set("kilometraje")} placeholder="38500" /></div>
             <div className="field">
               <label>Transmisión</label>

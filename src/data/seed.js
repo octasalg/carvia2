@@ -2,6 +2,8 @@
    CARVÍA — Datos de ejemplo (fallback sin Supabase)
    ============================================================ */
 
+import { getFinalPrice } from "../utils/pricing";
+
 export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "5216144016149";
 export const BRANDS = [
   "Acura", "Alfa Romeo", "Audi", "BMW", "BYD", "Buick", "Cadillac", "Chery",
@@ -31,7 +33,7 @@ export const img = (id, w = 1200) =>
 
 export function waLink(car) {
   const msg = car
-    ? `Hola Carvía, me interesa el ${car.marca} ${car.modelo} ${car.version} ${car.anio} (${mxn(car.precio)}). ¿Sigue disponible?`
+    ? `Hola Carvía, me interesa el ${car.marca} ${car.modelo} ${car.version} ${car.anio} (${mxn(getFinalPrice(car))}). ¿Sigue disponible?`
     : "Hola Carvía, me gustaría más información sobre sus autos seminuevos.";
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 }

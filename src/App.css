@@ -364,6 +364,10 @@ img { display: block; max-width: 100%; }
 .card-price-block { flex: 0 0 auto; min-width: 0; text-align: right; }
 .card-price { font-family: var(--display); font-size: 19px; font-weight: 700; white-space: nowrap; }
 .card-price span { color: var(--muted); font-family: var(--body); font-size: 10px; font-weight: 600; }
+.card-price-original { color: var(--muted2); font-size: 13px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
+.card-price-original s { text-decoration-thickness: 1.5px; }
+.card-price.card-price-offer { color: var(--orange); }
+.card-price-savings { margin-top: 2px; color: var(--wa); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .card-monthly-payment { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; white-space: nowrap; }
 .card-monthly-payment strong { color: var(--orange); font-size: 13px; font-weight: 700; }
 .card-specs { display: flex; flex-wrap: wrap; gap: 14px; padding: 14px 0; border-top: 1px solid var(--border); margin-bottom: 14px; }
@@ -501,6 +505,8 @@ img { display: block; max-width: 100%; }
   border-radius: 11px; font-family: var(--body); font-size: 14px; cursor: pointer; }
 .catalog-grid { margin-top: 8px; }
 .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+.catalog-grid { transition: opacity .2s ease; }
+.catalog-grid.is-refreshing { opacity: .55; }
 .empty svg { color: var(--muted2); margin-bottom: 16px; }
 .empty h3 { font-size: 22px; margin-bottom: 8px; color: var(--text); }
 .empty p { margin-bottom: 20px; }
@@ -542,6 +548,15 @@ img { display: block; max-width: 100%; }
 .detail-title { font-size: clamp(28px, 4vw, 40px); margin: 8px 0 14px; }
 .detail-title span { color: var(--muted); font-weight: 500; font-size: 20px; font-family: var(--body); }
 .detail-price { font-family: var(--display); font-size: 38px; font-weight: 800; color: var(--orange); margin-bottom: 12px; }
+.detail-price-wrap { margin-bottom: 12px; }
+.detail-price-wrap .detail-price { margin-bottom: 2px; line-height: 1.1; }
+.detail-offer-tag { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px; padding: 4px 10px; border-radius: 999px;
+  background: #e5484d; color: #fff; font-size: 12px; font-weight: 700; box-shadow: 0 4px 12px rgba(229,72,77,.3); }
+.detail-price-original { color: var(--muted); font-size: 15px; font-weight: 600; }
+.detail-price-original s { color: var(--muted2); margin-left: 4px; text-decoration-thickness: 1.5px; }
+.detail-price-savings { color: var(--wa); font-size: 15px; font-weight: 700; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
 .detail-financing { margin-bottom: 26px; padding-left: 14px; border-left: 2px solid rgba(255,90,31,.55); }
 .detail-financing-label { margin-bottom: 4px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em;
   text-transform: uppercase; }
@@ -807,6 +822,9 @@ img { display: block; max-width: 100%; }
 .ar-car strong { display: block; font-size: 14px; }
 .ar-car span { font-size: 12px; color: var(--muted); }
 .ar-price { font-family: var(--display); font-weight: 700; }
+.ar-price-offer { display: block; margin-top: 2px; color: #e5484d; font-family: var(--body); font-size: 12px; font-weight: 700; }
+.field-hint-offer { color: var(--wa); font-weight: 600; }
+.field-hint-error { color: #e5484d; font-weight: 600; }
 .ar-meta { font-size: 14px; }
 .ar-meta span { display: block; font-size: 12px; color: var(--muted); }
 .ar-created { font-size: 12px; font-weight: 600; line-height: 1.35; text-transform: capitalize; }

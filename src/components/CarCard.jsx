@@ -4,10 +4,12 @@ import Reveal from "./Reveal";
 import { mxn, km, waLink } from "../data/seed";
 import { calculateFinancing, financingCurrencyFormatter } from "../config/financing";
 import { trackMetaContact } from "../meta/metaPixel";
+import { getVehiclePricing } from "../utils/pricing";
 
 export default function CarCard({ car, delay = 0, showCertificationBanner = false }) {
   const navigate = useNavigate();
-  const financing = calculateFinancing(car.precio, car.anio);
+  const pricing = getVehiclePricing(car);
+  const financing = calculateFinancing(pricing.finalPrice, car.anio);
   const monthlyPayment = financing?.monthlyPayment;
   const hasValidMonthlyPayment = Number.isFinite(monthlyPayment) && monthlyPayment > 0;
 
@@ -35,7 +37,7 @@ export default function CarCard({ car, delay = 0, showCertificationBanner = fals
         {car.precio_especial && <span className="card-ribbon card-ribbon-left">Precio especial</span>}
         <div className={`card-badges${car.precio_especial ? " card-badges-lowered" : ""}`}>
           {car.destacado && <span className="card-badge tag-destacado"><Star size={12} /> Destacado</span>}
-          {car.oferta && <span className="card-badge tag-oferta">🔥 Oferta</span>}
+          {(car.oferta || pricing.hasOffer) && <span className="card-badge tag-oferta">🔥 Oferta</span>}
           {car.proximamente && <span className="card-badge tag-proximamente">⏳ Próximamente</span>}
         </div>
         {!car.vendido && <span className="card-year">{car.anio}</span>}
@@ -47,7 +49,19 @@ export default function CarCard({ car, delay = 0, showCertificationBanner = fals
             <h3 className="card-model">{car.modelo} <span>{car.version}</span></h3>
           </div>
           <div className="card-price-block">
-            <p className="card-price">{mxn(car.precio)} <span>MXN</span></p>
+            {pricing.hasOffer && (
+              <p className="card-price-original">
+                <span className="sr-only">Precio original: </span>
+                <s>{mxn(pricing.listPrice)}</s>
+              </p>
+            )}
+            <p className={`card-price${pricing.hasOffer ? " card-price-offer" : ""}`}>
+              {pricing.hasOffer && <span className="sr-only">Precio de oferta: </span>}
+              {mxn(pricing.finalPrice)} <span>MXN</span>
+            </p>
+            {pricing.hasOffer && (
+              <p className="card-price-savings">Ahorras {mxn(pricing.savings)}</p>
+            )}
             {hasValidMonthlyPayment && (
               <p className="card-monthly-payment">
                 Desde <strong>{financingCurrencyFormatter.format(monthlyPayment)}</strong>/mes

@@ -129,6 +129,20 @@ function saveLocalClassifications(options) {
   try { localStorage.setItem("carvia:internal-classifications:v1", JSON.stringify(options)); } catch { /* localStorage puede no estar disponible */ }
 }
 
+/* ---------- Búsqueda por palabra clave ----------
+   Divide el texto en palabras; cada palabra debe aparecer en al menos
+   uno de los campos (marca, modelo, versión, etc.). Así "Mazda 3 rojo"
+   o "CX-5 2021" encuentran autos aunque cada palabra esté en otro campo.
+   Se quitan caracteres que rompen la sintaxis de filtros de Supabase. */
+export function getSearchTerms(q) {
+  return String(q || "")
+    .replace(/[,()\\%*:"']/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
 function applyLocalFilters(cars, filters) {
   return cars.filter((c) => {
     if (filters.marca && c.marca !== filters.marca) return false;
@@ -142,7 +156,7 @@ function applyLocalFilters(cars, filters) {
     if (filters.kmMax && c.kilometraje > Number(filters.kmMax)) return false;
     if (filters.q) {
       const hay = `${c.marca} ${c.modelo} ${c.version} ${c.tipo} ${c.transmision} ${c.colorExterior} ${c.anio} ${c.descripcion}`.toLowerCase();
-      if (!hay.includes(filters.q.toLowerCase())) return false;
+      if (!getSearchTerms(filters.q).every((w) => hay.includes(w.toLowerCase()))) return false;
     }
     return true;
   });
@@ -506,9 +520,15 @@ function applySupabaseFilters(query, filters) {
   if (filters.precioMax) query = query.lte("precio", Number(filters.precioMax));
   if (filters.kmMax) query = query.lte("kilometraje", Number(filters.kmMax));
   if (filters.q) {
-    query = query.or(
-      `marca.ilike.%${filters.q}%,modelo.ilike.%${filters.q}%,version.ilike.%${filters.q}%,descripcion.ilike.%${filters.q}%,color_exterior.ilike.%${filters.q}%,tipo.ilike.%${filters.q}%`
-    );
+    // Un .or() por palabra: Supabase combina varios .or() con AND.
+    getSearchTerms(filters.q).forEach((w) => {
+      const fields = [
+        `marca.ilike.%${w}%`, `modelo.ilike.%${w}%`, `version.ilike.%${w}%`,
+        `descripcion.ilike.%${w}%`, `color_exterior.ilike.%${w}%`, `tipo.ilike.%${w}%`,
+      ];
+      if (/^\d{4}$/.test(w)) fields.push(`anio.eq.${w}`);
+      query = query.or(fields.join(","));
+    });
   }
   return query;
 }
